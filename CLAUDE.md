@@ -9,7 +9,9 @@ cp .env.example .env        # required — server fail-fasts without it
 docker compose up -d        # Mongo
 npm install
 npm run dev                 # server :3000 + client :5173 (proxies /api)
-npm run check               # constitution check + typecheck + tests
+                            # routes under /api/v1; OpenAPI docs at :3000/docs
+npm run check               # constitution check + lint + typecheck + tests
+npm run lint                # eslint, server + client in parallel
 npm test                    # unit always; integration only when MONGO_URI is set
 ```
 
