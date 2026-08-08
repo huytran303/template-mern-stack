@@ -10,7 +10,7 @@
     "test": "npm test --workspace=server",
     "seed": "npm run seed --workspace=server",
     "typecheck": "npm run typecheck --workspaces",
-    "lint": "npm run lint -w server & S=$!; npm run lint -w client & C=$!; wait $S; a=$?; wait $C; b=$?; exit $((a|b))",
+    "lint": "bash scripts/lint.sh",
     "check": "bash scripts/check-constitution.sh && npm run lint && npm run typecheck && npm test"
   },
   "devDependencies": {
