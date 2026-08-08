@@ -3,19 +3,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --env-file=.env src/main.ts",
+    "dev": "tsx watch --env-file=../.env src/main.ts",
     "build": "tsc",
-    "start": "node --env-file=.env dist/main.js",
+    "start": "node --env-file=../.env dist/main.js",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
-    "seed": "tsx --env-file=.env src/infra/db/seed.ts",
+    "seed": "tsx --env-file=../.env src/infra/db/seed.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "express": "^5.1.0",
     "mongoose": "^8.9.0",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "zod-openapi": "^4.2.4"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

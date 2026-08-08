@@ -22,7 +22,7 @@ npm test                    # unit always; integration only when MONGO_URI is se
 - `server/src/interface/http/` — Express routes + middleware (request logging, error handling). Translates HTTP ↔ usecase calls; no business logic here.
 - `server/src/infra/` — config, Mongo repositories. Implements domain ports.
 
-## Hard rules (CI-enforced, see .sdd/constitution.md for the full list + agent policy)
+## Hard rules (see .sdd/constitution.md for the full list + agent policy; mechanical rules are CI-checked, the rest are review gates — the constitution marks which is which)
 
 - `process.env` is read ONLY in `server/src/infra/config/`. Everything else receives typed `Config`.
 - `domain/` never imports from `usecase/`, `interface/`, or `infra/`; `usecase/` never from `interface/` or `infra/`.

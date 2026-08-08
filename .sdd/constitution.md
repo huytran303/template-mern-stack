@@ -19,8 +19,10 @@ stored value verifies against the input and does not equal it, plus the SEC-02 r
 ### SEC-02 · Authentication on mutating endpoints
 Every POST/PUT/PATCH/DELETE route requires auth middleware, except routes listed in an
 explicit `PUBLIC_ROUTES` allowlist (auth flows only: login, register, refresh).
-**Check:** dormant until auth exists. The auth PR MUST add a test that walks the Express
-router and asserts every mutating route has auth middleware or is in `PUBLIC_ROUTES`.
+**Rule and check are DORMANT until the auth feature ships** — the template's demo routes
+are public by design until then. The auth PR activates the rule and MUST add a test that
+walks the Express router and asserts every mutating route has auth middleware or is in
+`PUBLIC_ROUTES`.
 
 ### SEC-03 · Input validation (NoSQL injection)
 All client input passes a zod schema or a domain factory before use. Never pass raw
@@ -29,8 +31,9 @@ All client input passes a zod schema or a domain factory before use. Never pass 
 **Check:** grep forbids `find/updateOne/deleteOne/aggregate(req.…)` patterns; rest is review.
 
 ### SEC-04 · Secrets
-`.env` is never committed; `.env.example` stays current. `process.env` is read only in
-`server/src/infra/config/`. Agents never print, log, or commit secret values.
+`.env` is never committed; `.env.example` stays current. In application source (`server/src`),
+`process.env` is read only in `server/src/infra/config/`; test files may read env for wiring
+(e.g. `MONGO_URI` skip guards). Agents never print, log, or commit secret values.
 **Check:** grep (`.gitignore` must ignore `.env`; `process.env` confined) + gitleaks in CI.
 Agent clause: review.
 

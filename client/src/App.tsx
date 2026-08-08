@@ -11,7 +11,7 @@ export function App() {
   const [error, setError] = useState("");
 
   const load = () =>
-    fetch("/api/users")
+    fetch("/api/v1/users")
       .then((r) => r.json())
       .then(setUsers)
       .catch(() => setError("failed to load users"));
@@ -25,7 +25,7 @@ export function App() {
     setError("");
     const form = e.currentTarget;
     const data = new FormData(form);
-    const res = await fetch("/api/users", {
+    const res = await fetch("/api/v1/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: data.get("email"), name: data.get("name") }),

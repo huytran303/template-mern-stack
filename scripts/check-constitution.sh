@@ -36,21 +36,21 @@ if grep -rnE "from ['\"][^'\"]*(interface|infra)(/|['\"])" server/src/usecase --
   violation "ARCH-01: usecase/ imports from interface/ or infra/"
 fi
 
-# LOG-01: logging + error middleware actually mounted
-if ! grep -q "requestLogger" server/src/interface/http/server.ts ||
-   ! grep -q "errorHandler" server/src/interface/http/server.ts; then
+# LOG-01: logging + error middleware actually mounted (anchored — a commented-out line doesn't count)
+if ! grep -qE "^\s*app\.use\(requestLogger\)" server/src/interface/http/server.ts ||
+   ! grep -qE "^\s*app\.use\(errorHandler\)" server/src/interface/http/server.ts; then
   violation "LOG-01: requestLogger/errorHandler not mounted in server.ts"
 fi
 
-# STD-01: strict mode pinned in both workspaces
+# STD-01: strict mode pinned in both workspaces (parse the JSON, don't grep strings)
 for ws in server client; do
-  if ! grep -q '"strict": true' "$ws/tsconfig.json"; then
+  if ! node -e "process.exit(require('./$ws/tsconfig.json').compilerOptions.strict === true ? 0 : 1)"; then
     violation "STD-01: $ws/tsconfig.json does not pin \"strict\": true"
   fi
 done
 
-# STD-01: no `any` in source
-if grep -rnE ":\s*any\b|as any\b" server/src client/src --include="*.ts" --include="*.tsx"; then
+# STD-01: no `any` in source or tests (also catches generics: Array<any>, Record<string, any>)
+if grep -rnE "(:|,|<)\s*any\b|as any\b" server/src server/tests client/src --include="*.ts" --include="*.tsx"; then
   violation "STD-01: 'any' found in source (use unknown + narrowing)"
 fi
 
