@@ -29,3 +29,5 @@ server/tests/           unit (no DB) / integration (real Mongo)
 client/                 React + Vite, proxies /api
 .sdd/                   constitution, specs, ADRs — see CLAUDE.md
 ```
+
+Full what/why/when per layer: [ARCHITECTURE.md](ARCHITECTURE.md)
