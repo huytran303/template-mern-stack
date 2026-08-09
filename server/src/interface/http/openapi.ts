@@ -1,15 +1,20 @@
 import { z } from "zod";
 import { createDocument } from "zod-openapi";
-import { CreateUser } from "../../domain/user.js";
+import { CreateUser, ListUsersQuery, type User as DomainUser } from "../../domain/user.js";
 
+// Wire shape of a domain type: Dates serialize to ISO strings in JSON.
+type Wire<T> = { [K in keyof T]: T[K] extends Date ? string : T[K] };
+
+// `satisfies` links this schema to the domain entity — adding a field to User breaks the build here.
 const User = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   name: z.string(),
   createdAt: z.string().datetime(),
-});
+}) satisfies z.ZodType<Wire<DomainUser>>;
 
 const ApiError = z.object({ error: z.string() });
+const Health = z.object({ ok: z.boolean() });
 
 export const openApiDocument = createDocument({
   openapi: "3.1.0",
@@ -22,7 +27,11 @@ export const openApiDocument = createDocument({
         responses: {
           "200": {
             description: "OK",
-            content: { "application/json": { schema: z.object({ ok: z.boolean() }) } },
+            content: { "application/json": { schema: Health } },
+          },
+          "503": {
+            description: "Database unreachable",
+            content: { "application/json": { schema: Health } },
           },
         },
       },
@@ -30,10 +39,15 @@ export const openApiDocument = createDocument({
     "/users": {
       get: {
         summary: "List users",
+        requestParams: { query: ListUsersQuery },
         responses: {
           "200": {
-            description: "All users",
+            description: "Newest users first, at most `limit` (default 20, max 100)",
             content: { "application/json": { schema: z.array(User) } },
+          },
+          "400": {
+            description: "Invalid limit",
+            content: { "application/json": { schema: ApiError } },
           },
         },
       },
@@ -49,6 +63,10 @@ export const openApiDocument = createDocument({
           },
           "400": {
             description: "Validation error",
+            content: { "application/json": { schema: ApiError } },
+          },
+          "409": {
+            description: "Email already registered",
             content: { "application/json": { schema: ApiError } },
           },
         },
