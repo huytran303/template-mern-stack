@@ -1,6 +1,7 @@
 {
   "name": "template-mern-stack",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "server",
     "client"

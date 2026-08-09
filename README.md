@@ -34,3 +34,7 @@ client/                 React + Vite, proxies /api
 ```
 
 Full what/why/when per layer: [ARCHITECTURE.md](ARCHITECTURE.md)
+
+## License
+
+[MIT](LICENSE)
