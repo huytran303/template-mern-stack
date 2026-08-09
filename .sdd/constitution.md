@@ -76,8 +76,11 @@ exist for Express and a dead gate is worse than an honest review step.
 
 ### STD-01 · TypeScript
 Strict mode pinned in both workspaces. No `any` (use `unknown` + narrowing).
+Named functions are declarations (`function foo()`), never arrow consts — declarations hoist
+(main logic reads top-down) and Mongoose hooks/methods require `function` for `this`.
+Inline callbacks stay arrows.
 **Check:** grep pins `"strict": true` in both tsconfigs; grep forbids `: any` / `as any`;
-`tsc --noEmit` runs in CI for both workspaces.
+`tsc --noEmit` runs in CI for both workspaces; ESLint `func-style` enforces declarations.
 
 ### STD-02 · Testing
 - `tests/unit/` — domain + usecase, no DB, no network, in-memory repos.

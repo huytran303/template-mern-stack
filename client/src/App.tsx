@@ -10,14 +10,15 @@ export function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState("");
 
-  const load = () =>
-    fetch("/api/v1/users")
+  function load() {
+    return fetch("/api/v1/users")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
       .then(setUsers)
       .catch(() => setError("failed to load users"));
+  }
 
   useEffect(() => {
     load();

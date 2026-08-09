@@ -17,15 +17,18 @@ export function ensureUserIndexes(): Promise<void> {
   return UserModel.createIndexes();
 }
 
-const toDomain = (d: User): User => ({
-  id: d.id,
-  email: d.email,
-  name: d.name,
-  createdAt: d.createdAt,
-});
+function toDomain(d: User): User {
+  return {
+    id: d.id,
+    email: d.email,
+    name: d.name,
+    createdAt: d.createdAt,
+  };
+}
 
-const isDuplicateKey = (err: unknown) =>
-  err instanceof mongoose.mongo.MongoServerError && err.code === 11000;
+function isDuplicateKey(err: unknown): boolean {
+  return err instanceof mongoose.mongo.MongoServerError && err.code === 11000;
+}
 
 export function mongoUserRepository(): UserRepository {
   return {
