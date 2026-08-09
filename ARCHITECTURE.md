@@ -41,7 +41,7 @@ HTTP request
 
 **What?** The Express edge: `server.ts` (app assembly), `user-routes.ts` (endpoints under `/api/v1`), `middleware.ts` (request logging + error handling), `openapi.ts` (API docs served at `/docs`). It translates HTTP ↔ usecase calls and nothing more.
 
-**Why?** HTTP is a delivery detail. By keeping this layer thin, the choice of Express (or its version, or REST itself) stays replaceable, and the error-handling middleware gives one consistent contract: `DomainError` → 400, anything unexpected → 500 — no per-route error juggling. Validating input here (zod / domain factory) before it reaches a Mongoose query is also the NoSQL-injection boundary.
+**Why?** HTTP is a delivery detail. By keeping this layer thin, the choice of Express (or its version, or REST itself) stays replaceable, and the error-handling middleware gives one consistent contract: `DomainError` → 400/409/404 by kind, anything unexpected → 500 — no per-route error juggling. Validating input here (zod / domain factory) before it reaches a Mongoose query is also the NoSQL-injection boundary.
 
 **When?** Touch this layer when the *outside contract* changes: a new endpoint, a new status code, request/response shape, headers, logging. The route body should stay ~5 lines: parse input, call usecase, send response. If it grows past that, business logic is leaking in — move it to a usecase.
 
@@ -101,6 +101,6 @@ HTTP request
 ## Rules of thumb
 
 - Dependencies only point inward: `domain` imports nothing; `usecase` imports only `domain`; `interface` and `infra` never import each other.
-- `process.env` only in `infra/config/`. `DomainError` for business failures (→ 400), everything else → 500.
+- `process.env` only in `infra/config/`. `DomainError` for business failures (kind → 400/409/404), everything else → 500.
 - Never pass raw `req.body`/`req.query` into a Mongoose query — validate first.
 - Deciding where code goes? Ask: "would this line survive swapping Express for Fastify and Mongo for Postgres?" Yes → `domain`/`usecase`. No → `interface`/`infra`.

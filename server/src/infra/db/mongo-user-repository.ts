@@ -40,7 +40,7 @@ export function mongoUserRepository(): UserRepository {
       try {
         await UserModel.create(user);
       } catch (err) {
-        if (isDuplicateKey(err)) throw new DomainError("email already registered");
+        if (isDuplicateKey(err)) throw new DomainError("email already registered", "conflict");
         throw err;
       }
     },

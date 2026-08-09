@@ -13,7 +13,7 @@ function inMemoryRepo(): UserRepository {
     },
     async save(user) {
       if (users.some((u) => u.email === user.email)) {
-        throw new DomainError("email already registered");
+        throw new DomainError("email already registered", "conflict");
       }
       users.push({ ...user });
     },
@@ -44,11 +44,12 @@ describe("registerUser", () => {
     ).rejects.toThrow(DomainError);
   });
 
-  it("rejects duplicate email", async () => {
+  it("rejects duplicate email as a conflict", async () => {
     const repo = inMemoryRepo();
     await registerUser(repo, { email: "a@b.co", name: "Ana" });
-    await expect(registerUser(repo, { email: "a@b.co", name: "Bob" })).rejects.toThrow(
-      "email already registered",
-    );
+    await expect(registerUser(repo, { email: "a@b.co", name: "Bob" })).rejects.toMatchObject({
+      message: "email already registered",
+      kind: "conflict",
+    });
   });
 });

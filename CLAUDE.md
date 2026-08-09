@@ -32,7 +32,7 @@ npm test                    # unit always; integration when MONGO_URI is set (au
 - No `any` in source; strict mode is pinned in both tsconfigs.
 - Never print, log, or commit secret values; `.env` stays git-ignored.
 - Config is validated with zod at boot; invalid env = `process.exit(1)`.
-- Errors: throw `DomainError` for business failures → middleware maps to 400; everything else → 500.
+- Errors: throw `DomainError(message, kind)` for business failures → middleware maps kind to status (`validation` → 400, `conflict` → 409, `not_found` → 404); everything else → 500 with a generic message.
 - Unit tests (`tests/unit/`) must run with no DB and no network — CI runs them in a job with no Mongo.
 
 ## Process

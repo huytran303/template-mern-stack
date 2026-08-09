@@ -1,5 +1,12 @@
+import { STATUS_CODES } from "node:http";
 import type { NextFunction, Request, Response } from "express";
-import { DomainError } from "../../domain/errors.js";
+import { DomainError, type DomainErrorKind } from "../../domain/errors.js";
+
+const DOMAIN_STATUS: Record<DomainErrorKind, number> = {
+  validation: 400,
+  conflict: 409,
+  not_found: 404,
+};
 
 // Performance/access log: one JSON line per request with duration.
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
@@ -29,13 +36,15 @@ function clientErrorStatus(err: unknown): number | undefined {
 export function errorHandler(err: unknown, _req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) return next(err); // too late to write a body — let express close the socket
   if (err instanceof DomainError) {
-    res.status(400).json({ error: err.message });
+    res.status(DOMAIN_STATUS[err.kind]).json({ error: err.message });
     return;
   }
-  // Framework 4xx (body-parser 400/413/415, http-errors) carry status/statusCode — keep them 4xx.
+  // Framework 4xx (body-parser 400/413/415, http-errors) keep their status, but the client gets
+  // the generic reason phrase — err.message can echo raw request bytes (LOG-01). Log the real cause.
   const status = clientErrorStatus(err);
   if (status !== undefined) {
-    res.status(status).json({ error: err instanceof Error ? err.message : "bad request" });
+    console.warn(`client error ${status}: ${err instanceof Error ? err.message : String(err)}`);
+    res.status(status).json({ error: (STATUS_CODES[status] ?? "bad request").toLowerCase() });
     return;
   }
   console.error(err);
