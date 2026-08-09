@@ -1,7 +1,6 @@
 # Constitution
 
-Version 1.1.0 · Status: ACTIVE (amendable — see §Amendment)
-Team: [5 members] · Supervisor: [name] · Timeline: [start] → [defense day]
+Version 1.2.0 · Status: ACTIVE (amendable — see §Amendment)
 
 **Principle: a rule without a machine check is a suggestion.** Every rule below names
 its check. Machine checks live in `scripts/check-constitution.sh` and `.github/workflows/ci.yml`;
@@ -28,14 +27,16 @@ walks the Express router and asserts every mutating route has auth middleware or
 All client input passes a zod schema or a domain factory before use. Never pass raw
 `req.body` / `req.query` / `req.params` objects into a Mongoose query — operator injection
 (`{"$gt": ""}`) is the MERN attack, not SQL concatenation.
-**Check:** grep forbids `find/updateOne/deleteOne/aggregate(req.…)` patterns; rest is review.
+**Check:** grep forbids `req.*` anywhere in a Mongoose query call's arguments, and mongoose is
+importable only in `server/src/infra/` (+ `main.ts` for connect) — so routes and usecases can't
+reach a model at all, aliased or not. Rest is review.
 
 ### SEC-04 · Secrets
 `.env` is never committed; `.env.example` stays current. In application source (`server/src`),
 `process.env` is read only in `server/src/infra/config/`; test files may read env for wiring
 (e.g. `MONGO_URI` skip guards). Agents never print, log, or commit secret values.
-**Check:** grep (`.gitignore` must ignore `.env`; `process.env` confined) + gitleaks in CI.
-Agent clause: review.
+**Check:** grep (`.gitignore` must ignore `.env`; `process.env` and `process[...]` bypasses
+confined) + gitleaks in CI. Agent clause: review.
 
 ### DATA-01 · Deletes
 Hard delete is the default. Soft delete only for entities whose feature needs restore/history,
@@ -46,7 +47,8 @@ and then via `mongoose-delete` plugin (automatic query scoping) — never a hand
 ### LOG-01 · Observability
 Every request is logged as one JSON line with duration (`requestLogger` middleware).
 Stack traces and internal error details go to server logs only; clients get
-`{error}` with a generic message on 500.
+`{error}` with a generic message on 500 and on framework 4xx (which are logged server-side —
+`err.message` can echo raw request bytes).
 **Check:** grep asserts `requestLogger` and `errorHandler` are mounted in `server.ts`; rest is review.
 
 ---
@@ -56,19 +58,26 @@ Stack traces and internal error details go to server logs only; clients get
 ### ARCH-01 · Layer boundaries
 `interface → usecase → domain ← infra`. Domain imports nothing from other layers and owns
 the repository ports. Usecases receive repositories as arguments — no DI container.
-**Check:** grep (static, barrel, and dynamic imports) in `check-constitution.sh`.
+`interface/` and `infra/` never import each other; mongoose lives only in `infra/`,
+express only in `interface/`; domain never logs.
+**Check:** grep (static, barrel, and dynamic imports; both directions; framework confinement;
+`console.*` in domain) in `check-constitution.sh`.
 
 ### ARCH-02 · Error handling
-Business failures throw `DomainError` → middleware maps to 400 `{error}`. Everything else → 500
-with a generic message. No stack traces to clients (see LOG-01).
-**Check:** the mapping lives in one place (`interface/http/middleware.ts`); review confirms
-new code throws `DomainError` instead of ad-hoc status codes.
+Business failures throw `DomainError(message, kind)`; middleware maps the kind to a status:
+`validation` → 400 (default), `conflict` → 409, `not_found` → 404, always as `{error}` with the
+domain message. Framework 4xx (body parser etc.) keep their status but clients get the generic
+reason phrase, never `err.message`. Everything else → 500 with a generic message.
+No stack traces to clients (see LOG-01).
+**Check:** the mapping lives in one place (`interface/http/middleware.ts`) with unit tests;
+review confirms new code throws `DomainError` instead of ad-hoc status codes.
 
 ### ARCH-03 · API contract
 Any endpoint change updates the API contract (`server/src/interface/http/openapi.ts`, served
-at `/docs`) **in the same PR**, reviewed like code. No pre-approval gate, no CI spec-matcher — that tooling doesn't
-exist for Express and a dead gate is worse than an honest review step.
-**Check:** review (PR checklist item).
+at `/docs`) **in the same PR**, reviewed like code.
+**Check:** a unit test walks the mounted Express routes and fails when spec and app disagree;
+the User wire schema is type-linked (`satisfies`) to the domain entity, so field drift fails
+`tsc`. Response details beyond that: review (PR checklist item).
 
 ---
 
@@ -85,7 +94,7 @@ Inline callbacks stay arrows.
 ### STD-02 · Testing
 - `tests/unit/` — domain + usecase, no DB, no network, in-memory repos.
 - `tests/integration/` — infra against real Mongo (docker compose / CI service).
-- One e2e happy-path script once the demo UI stabilizes — it doubles as defense rehearsal.
+- One e2e happy-path script once the demo UI stabilizes.
 - No coverage percentage. A coverage bar makes teams write coverage-chasing tests;
   the gate is: every acceptance criterion in a SPEC has a test.
 
@@ -117,18 +126,16 @@ CI does not check L2 and L4 — claiming otherwise trains reviewers to skip them
 ### Deployment
 Local: `docker compose up -d` + `npm run dev`. No CD ships with the template — the demo
 instance is deployed manually (add a workflow when the team picks a host).
-Freeze `main` 48h before the defense; emergencies go through `git revert`, not hotfixes.
+Freeze `main` before a release or demo day; emergencies go through `git revert`, not hotfixes.
 
-### Defense readiness
+### Demo readiness
 - `npm run seed` rebuilds a demo database in one command, on any machine. Keep it working.
-- Record a backup demo video before defense week.
-- **No agent-written PR merges unless the merging human can explain every line.** The supervisor
-  grills individuals on "their" code; "the agent wrote it" is a failing answer.
+- **No agent-written PR merges unless the merging human can explain every line.**
 
 ### Amendment
-This file changes by PR with 3/5 team approval, and **every new rule ships its machine check
-in the same PR** (or is explicitly labeled `review`). Team lead arbitrates day-to-day disputes;
-the supervisor is the escalation tiebreaker.
+This file changes by PR with majority team approval, and **every new rule ships its machine
+check in the same PR** (or is explicitly labeled `review`). The team lead arbitrates
+day-to-day disputes.
 
 ---
 

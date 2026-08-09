@@ -1,4 +1,4 @@
-// Rebuilds a demo database in one command: npm run seed (constitution: Defense readiness)
+// Rebuilds a demo database in one command: npm run seed (constitution: Demo readiness)
 import mongoose from "mongoose";
 import { newUser } from "../../domain/user.js";
 import { loadConfig } from "../config/index.js";
