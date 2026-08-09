@@ -11,7 +11,8 @@ Requires Node >= 22.9 (scripts use `--env-file`).
 cp .env.example .env
 docker compose up -d     # Mongo (bound to 127.0.0.1)
 npm install
-npm run dev              # API :3000, client :5173
+npm run dev              # API :3000 (OpenAPI docs at /docs), client :5173
+npm run seed             # optional — demo data (3 users)
 ```
 
 ## Verify
