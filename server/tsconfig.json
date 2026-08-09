@@ -4,11 +4,8 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
-    "outDir": "dist",
-    "rootDir": "src",
     "skipLibCheck": true,
-    "declaration": false,
-    "sourceMap": true
+    "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "tests", "vitest.config.ts"]
 }

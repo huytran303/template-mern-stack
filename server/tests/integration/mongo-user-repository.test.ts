@@ -2,14 +2,19 @@
 import mongoose from "mongoose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { newUser } from "../../src/domain/user.js";
-import { mongoUserRepository } from "../../src/infra/db/mongo-user-repository.js";
+import {
+  ensureUserIndexes,
+  mongoUserRepository,
+} from "../../src/infra/db/mongo-user-repository.js";
 
 const uri = process.env.MONGO_URI;
 
 describe.skipIf(!uri)("mongoUserRepository", () => {
   beforeAll(async () => {
-    await mongoose.connect(`${uri}-test`);
+    // dbName override — never derive the test db by string-mangling the URI
+    await mongoose.connect(uri ?? "", { dbName: "mern-template-test" });
     await mongoose.connection.dropDatabase();
+    await ensureUserIndexes(); // dropDatabase dropped the unique index too
   });
   afterAll(async () => {
     await mongoose.disconnect();
@@ -22,5 +27,12 @@ describe.skipIf(!uri)("mongoUserRepository", () => {
     const found = await repo.findByEmail("it@example.com");
     expect(found?.id).toBe(user.id);
     expect(await repo.list()).toHaveLength(1);
+  });
+
+  it("maps the unique-index violation to DomainError", async () => {
+    const repo = mongoUserRepository();
+    await expect(repo.save(newUser({ email: "it@example.com", name: "Dup" }))).rejects.toThrow(
+      "email already registered",
+    );
   });
 });

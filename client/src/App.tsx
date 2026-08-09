@@ -12,7 +12,10 @@ export function App() {
 
   const load = () =>
     fetch("/api/v1/users")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(setUsers)
       .catch(() => setError("failed to load users"));
 
@@ -25,17 +28,24 @@ export function App() {
     setError("");
     const form = e.currentTarget;
     const data = new FormData(form);
-    const res = await fetch("/api/v1/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: data.get("email"), name: data.get("name") }),
-    });
-    if (!res.ok) {
-      setError((await res.json()).error ?? "request failed");
-      return;
+    try {
+      const res = await fetch("/api/v1/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.get("email"), name: data.get("name") }),
+      });
+      if (!res.ok) {
+        // Error bodies aren't always JSON (proxy errors, HTML 404s) — don't let .json() throw.
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(body?.error ?? `request failed (${res.status})`);
+        return;
+      }
+      const created: User = await res.json();
+      setUsers((prev) => [created, ...prev]); // server returns the created user — no refetch needed
+      form.reset();
+    } catch {
+      setError("request failed");
     }
-    form.reset();
-    load();
   }
 
   return (

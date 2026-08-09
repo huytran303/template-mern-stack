@@ -12,7 +12,7 @@ npm run dev                 # server :3000 + client :5173 (proxies /api)
                             # routes under /api/v1; OpenAPI docs at :3000/docs
 npm run check               # constitution check + lint + typecheck + tests
 npm run lint                # eslint, server + client in parallel
-npm test                    # unit always; integration only when MONGO_URI is set
+npm test                    # unit always; integration when MONGO_URI is set (auto-loaded from .env)
 ```
 
 ## Architecture — 4 layers, arrows point at domain

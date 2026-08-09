@@ -1,7 +1,7 @@
 # Constitution
 
 Version 1.1.0 · Status: ACTIVE (amendable — see §Amendment)
-Team: [5 members] · Supervisor: [GVHD] · Timeline: [start] → [defense day]
+Team: [5 members] · Supervisor: [name] · Timeline: [start] → [defense day]
 
 **Principle: a rule without a machine check is a suggestion.** Every rule below names
 its check. Machine checks live in `scripts/check-constitution.sh` and `.github/workflows/ci.yml`;
@@ -65,8 +65,8 @@ with a generic message. No stack traces to clients (see LOG-01).
 new code throws `DomainError` instead of ad-hoc status codes.
 
 ### ARCH-03 · API contract
-Any endpoint change updates the API contract (`docs/api/` OpenAPI or shared types) **in the
-same PR**, reviewed like code. No pre-approval gate, no CI spec-matcher — that tooling doesn't
+Any endpoint change updates the API contract (`server/src/interface/http/openapi.ts`, served
+at `/docs`) **in the same PR**, reviewed like code. No pre-approval gate, no CI spec-matcher — that tooling doesn't
 exist for Express and a dead gate is worse than an honest review step.
 **Check:** review (PR checklist item).
 
@@ -112,19 +112,20 @@ in repo settings; self-approval is impossible natively). Branch names: review.
 CI does not check L2 and L4 — claiming otherwise trains reviewers to skip them.
 
 ### Deployment
-Local: `docker compose up -d` + `npm run dev`. One demo instance auto-deploys from `main`.
+Local: `docker compose up -d` + `npm run dev`. No CD ships with the template — the demo
+instance is deployed manually (add a workflow when the team picks a host).
 Freeze `main` 48h before the defense; emergencies go through `git revert`, not hotfixes.
 
 ### Defense readiness
 - `npm run seed` rebuilds a demo database in one command, on any machine. Keep it working.
 - Record a backup demo video before defense week.
-- **No agent-written PR merges unless the merging human can explain every line.** GVHD grills
-  individuals on "their" code; "the agent wrote it" is a failing answer.
+- **No agent-written PR merges unless the merging human can explain every line.** The supervisor
+  grills individuals on "their" code; "the agent wrote it" is a failing answer.
 
 ### Amendment
 This file changes by PR with 3/5 team approval, and **every new rule ships its machine check
 in the same PR** (or is explicitly labeled `review`). Team lead arbitrates day-to-day disputes;
-GVHD is the escalation tiebreaker.
+the supervisor is the escalation tiebreaker.
 
 ---
 

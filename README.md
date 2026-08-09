@@ -5,9 +5,11 @@ config, request logging middleware, CI-enforced layer rules.
 
 ## Quickstart
 
+Requires Node >= 22.9 (scripts use `--env-file`).
+
 ```bash
 cp .env.example .env
-docker compose up -d     # Mongo
+docker compose up -d     # Mongo (bound to 127.0.0.1)
 npm install
 npm run dev              # API :3000, client :5173
 ```
@@ -15,7 +17,7 @@ npm run dev              # API :3000, client :5173
 ## Verify
 
 ```bash
-npm run check            # constitution + typecheck + tests
+npm run check            # constitution + lint + typecheck + tests
 ```
 
 ## Layout

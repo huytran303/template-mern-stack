@@ -3,17 +3,22 @@ import { DomainError } from "../../src/domain/errors.js";
 import type { User, UserRepository } from "../../src/domain/user.js";
 import { listUsers, registerUser } from "../../src/usecase/users.js";
 
+// Mirrors the Mongo adapter's contract: unique email, newest first, returns copies.
 function inMemoryRepo(): UserRepository {
   const users: User[] = [];
   return {
     async findByEmail(email) {
-      return users.find((u) => u.email === email) ?? null;
+      const found = users.find((u) => u.email === email);
+      return found ? { ...found } : null;
     },
     async save(user) {
-      users.push(user);
+      if (users.some((u) => u.email === user.email)) {
+        throw new DomainError("email already registered");
+      }
+      users.push({ ...user });
     },
     async list() {
-      return [...users];
+      return users.map((u) => ({ ...u })).sort((a, b) => +b.createdAt - +a.createdAt);
     },
   };
 }
@@ -31,6 +36,12 @@ describe("registerUser", () => {
     await expect(registerUser(inMemoryRepo(), { email: "nope", name: "Ana" })).rejects.toThrow(
       DomainError,
     );
+  });
+
+  it("rejects non-string body fields", async () => {
+    await expect(
+      registerUser(inMemoryRepo(), { email: ["a@b.co"], name: { x: 1 } }),
+    ).rejects.toThrow(DomainError);
   });
 
   it("rejects duplicate email", async () => {

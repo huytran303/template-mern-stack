@@ -14,9 +14,14 @@ const demo = [
   { email: "carol@example.com", name: "Carol" },
 ];
 
+let seeded = 0;
 for (const input of demo) {
-  if (!(await repo.findByEmail(input.email))) await repo.save(newUser(input));
+  if (!(await repo.findByEmail(input.email))) {
+    await repo.save(newUser(input));
+    seeded++;
+  }
 }
 
-console.log(`seeded ${demo.length} users into ${config.MONGO_URI}`);
+// Never log MONGO_URI — it can carry credentials (SEC-04).
+console.log(`seeded ${seeded} of ${demo.length} demo users`);
 await mongoose.disconnect();

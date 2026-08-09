@@ -1,9 +1,10 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 
-export default defineConfig({
+// Proxy target follows PORT from the root .env — same source of truth as the server.
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   server: {
-    proxy: { "/api": "http://localhost:3000" },
+    proxy: { "/api": `http://localhost:${loadEnv(mode, "..", "").PORT || 3000}` },
   },
-});
+}));

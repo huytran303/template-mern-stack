@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { DomainError } from "../../domain/errors.js";
 import type { User, UserRepository } from "../../domain/user.js";
 
 const UserModel = mongoose.model(
@@ -7,9 +8,14 @@ const UserModel = mongoose.model(
     id: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     name: { type: String, required: true },
-    createdAt: { type: Date, required: true },
+    createdAt: { type: Date, required: true, index: true },
   }),
 );
+
+// Surfaces unique-index build failures at boot instead of mongoose swallowing them in the background.
+export function ensureUserIndexes(): Promise<void> {
+  return UserModel.createIndexes();
+}
 
 const toDomain = (d: User): User => ({
   id: d.id,
@@ -18,6 +24,9 @@ const toDomain = (d: User): User => ({
   createdAt: d.createdAt,
 });
 
+const isDuplicateKey = (err: unknown) =>
+  err instanceof mongoose.mongo.MongoServerError && err.code === 11000;
+
 export function mongoUserRepository(): UserRepository {
   return {
     async findByEmail(email) {
@@ -25,7 +34,12 @@ export function mongoUserRepository(): UserRepository {
       return doc ? toDomain(doc) : null;
     },
     async save(user) {
-      await UserModel.create(user);
+      try {
+        await UserModel.create(user);
+      } catch (err) {
+        if (isDuplicateKey(err)) throw new DomainError("email already registered");
+        throw err;
+      }
     },
     async list() {
       const docs = await UserModel.find().sort({ createdAt: -1 }).lean();

@@ -10,8 +10,7 @@ export function userRoutes(repo: UserRepository): Router {
   });
 
   router.post("/users", async (req, res) => {
-    const { email, name } = req.body ?? {};
-    const user = await registerUser(repo, { email: String(email ?? ""), name: String(name ?? "") });
+    const user = await registerUser(repo, req.body); // validated against CreateUser in the domain
     res.status(201).json(user);
   });
 

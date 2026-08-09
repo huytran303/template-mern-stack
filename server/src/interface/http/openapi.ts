@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createDocument } from "zod-openapi";
+import { CreateUser } from "../../domain/user.js";
 
 const User = z.object({
   id: z.string().uuid(),
@@ -8,16 +9,11 @@ const User = z.object({
   createdAt: z.string().datetime(),
 });
 
-const CreateUser = z.object({
-  email: z.string().email(),
-  name: z.string().min(1).max(100),
-});
-
 const ApiError = z.object({ error: z.string() });
 
 export const openApiDocument = createDocument({
   openapi: "3.1.0",
-  info: { title: "StarCi Shop API", version: "1.0.0" },
+  info: { title: "MERN Template API", version: "1.0.0" },
   servers: [{ url: "/api/v1" }],
   paths: {
     "/health": {
