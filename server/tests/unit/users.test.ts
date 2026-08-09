@@ -17,8 +17,11 @@ function inMemoryRepo(): UserRepository {
       }
       users.push({ ...user });
     },
-    async list() {
-      return users.map((u) => ({ ...u })).sort((a, b) => +b.createdAt - +a.createdAt);
+    async list(limit) {
+      return users
+        .map((u) => ({ ...u }))
+        .sort((a, b) => +b.createdAt - +a.createdAt)
+        .slice(0, limit);
     },
   };
 }
@@ -51,5 +54,25 @@ describe("registerUser", () => {
       message: "email already registered",
       kind: "conflict",
     });
+  });
+
+  it("rejects an oversized email", async () => {
+    const email = `${"a".repeat(300)}@example.com`;
+    await expect(registerUser(inMemoryRepo(), { email, name: "Ana" })).rejects.toThrow(
+      "email too long",
+    );
+  });
+});
+
+describe("listUsers", () => {
+  it("applies the validated limit and rejects bad ones", async () => {
+    const repo = inMemoryRepo();
+    for (let i = 0; i < 3; i++) {
+      await registerUser(repo, { email: `u${i}@example.com`, name: `U${i}` });
+    }
+    expect(await listUsers(repo)).toHaveLength(3); // default limit
+    expect(await listUsers(repo, { limit: "2" })).toHaveLength(2); // query strings coerce
+    await expect(listUsers(repo, { limit: "0" })).rejects.toThrow(DomainError);
+    await expect(listUsers(repo, { limit: "101" })).rejects.toThrow("limit must be 1-100");
   });
 });

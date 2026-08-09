@@ -1,4 +1,4 @@
-import { newUser, type User, type UserRepository } from "../domain/user.js";
+import { newListQuery, newUser, type User, type UserRepository } from "../domain/user.js";
 
 export async function registerUser(repo: UserRepository, input: unknown): Promise<User> {
   const user = newUser(input);
@@ -6,6 +6,6 @@ export async function registerUser(repo: UserRepository, input: unknown): Promis
   return user;
 }
 
-export function listUsers(repo: UserRepository): Promise<User[]> {
-  return repo.list();
+export async function listUsers(repo: UserRepository, query: unknown = {}): Promise<User[]> {
+  return repo.list(newListQuery(query).limit); // async so a validation throw always rejects
 }

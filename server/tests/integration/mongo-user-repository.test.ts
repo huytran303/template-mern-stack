@@ -26,7 +26,7 @@ describe.skipIf(!uri)("mongoUserRepository", () => {
     await repo.save(user);
     const found = await repo.findByEmail("it@example.com");
     expect(found?.id).toBe(user.id);
-    expect(await repo.list()).toHaveLength(1);
+    expect(await repo.list(20)).toHaveLength(1);
   });
 
   it("maps the unique-index violation to DomainError", async () => {

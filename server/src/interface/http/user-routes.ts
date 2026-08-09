@@ -5,8 +5,8 @@ import { listUsers, registerUser } from "../../usecase/users.js";
 export function userRoutes(repo: UserRepository): Router {
   const router = Router();
 
-  router.get("/users", async (_req, res) => {
-    res.json(await listUsers(repo));
+  router.get("/users", async (req, res) => {
+    res.json(await listUsers(repo, req.query)); // limit validated against ListUsersQuery in the domain
   });
 
   router.post("/users", async (req, res) => {

@@ -44,8 +44,8 @@ export function mongoUserRepository(): UserRepository {
         throw err;
       }
     },
-    async list() {
-      const docs = await UserModel.find().sort({ createdAt: -1 }).lean();
+    async list(limit) {
+      const docs = await UserModel.find().sort({ createdAt: -1 }).limit(limit).lean();
       return docs.map(toDomain);
     },
   };
