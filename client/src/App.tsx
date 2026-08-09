@@ -62,7 +62,7 @@ export function App() {
         <input name="email" type="email" placeholder="Email" required />
         <button>Add</button>
       </form>
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-danger)" }}>{error}</p>}
       <ul>
         {users.map((u) => (
           <li key={u.id}>

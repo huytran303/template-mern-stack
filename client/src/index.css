@@ -1,0 +1,6 @@
+/* Design tokens — the ONLY place color values (hex/named) are allowed. */
+:root {
+  --color-text: #1a1a1a;
+  --color-bg: #ffffff;
+  --color-danger: #dc143c;
+}

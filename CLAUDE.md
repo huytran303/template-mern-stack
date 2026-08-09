@@ -34,6 +34,8 @@ npm test                    # unit always; integration when MONGO_URI is set (au
 - Config is validated with zod at boot; invalid env = `process.exit(1)`.
 - Errors: throw `DomainError(message, kind)` for business failures → middleware maps kind to status (`validation` → 400, `conflict` → 409, `not_found` → 404); everything else → 500 with a generic message.
 - Unit tests (`tests/unit/`) must run with no DB and no network — CI runs them in a job with no Mongo.
+- Client: never hardcode colors (hex or named) in TS/TSX — define tokens in `client/src/index.css` and reference them with `var(--…)`. ESLint bans hex literals in `client/src/`.
+- Client conditional styling: CSS-override pattern — the default state is the base class/style; conditions only ADD an override class for the exception state (never toggle two opposite classes on `cond` / `!cond`). No template literals in `className` (ESLint-banned) — use a `cn(base, { override: condition })` helper. Tailwind v4 projects: no `tailwind.config`, tokens live in the global CSS as `--color-[name]-app` → use `text-[name]-app`; arbitrary values like `text-[#hex]` are banned.
 
 ## Process
 
