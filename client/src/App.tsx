@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 interface User {
   id: string;
@@ -9,19 +9,23 @@ interface User {
 export function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState("");
+  const loadCtrl = useRef<AbortController | null>(null);
 
-  function load() {
-    return fetch("/api/v1/users")
+  useEffect(() => {
+    // Abortable so a slow initial GET can't resolve late and clobber newer state
+    // (after unmount, or after a POST already prepended a user).
+    const ctrl = new AbortController();
+    loadCtrl.current = ctrl;
+    fetch("/api/v1/users", { signal: ctrl.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then(setUsers)
-      .catch(() => setError("failed to load users"));
-  }
-
-  useEffect(() => {
-    load();
+      .then((data: User[]) => setUsers(data))
+      .catch(() => {
+        if (!ctrl.signal.aborted) setError("failed to load users");
+      });
+    return () => ctrl.abort();
   }, []);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -42,6 +46,7 @@ export function App() {
         return;
       }
       const created: User = await res.json();
+      loadCtrl.current?.abort(); // an in-flight initial GET is now stale — don't let it overwrite
       setUsers((prev) => [created, ...prev]); // server returns the created user — no refetch needed
       form.reset();
     } catch {
