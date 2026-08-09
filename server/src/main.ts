@@ -14,13 +14,24 @@ try {
 }
 console.log("mongo connected");
 
-const app = buildApp({ userRepo: mongoUserRepository() });
+const app = buildApp({
+  userRepo: mongoUserRepository(),
+  dbReady: () => mongoose.connection.readyState === 1,
+});
 const server = app.listen(config.PORT, () => {
   console.log(`server listening on :${config.PORT} (${config.NODE_ENV})`);
 });
 
+let shuttingDown = false;
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
+    if (shuttingDown) process.exit(1); // second signal = stop waiting, exit now
+    shuttingDown = true;
+    // Drain deadline — a hung in-flight request must not block SIGTERM until the platform SIGKILLs.
+    setTimeout(() => {
+      console.error("shutdown deadline hit — forcing exit");
+      process.exit(1);
+    }, 10_000);
     server.close(() => {
       mongoose.disconnect().finally(() => process.exit(0));
     });

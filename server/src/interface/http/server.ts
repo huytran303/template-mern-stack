@@ -22,12 +22,13 @@ const docsHtml = `<!doctype html>
 </body>
 </html>`;
 
-export function buildApp(deps: { userRepo: UserRepository }) {
+export function buildApp(deps: { userRepo: UserRepository; dbReady: () => boolean }) {
   const app = express();
   app.use(requestLogger); // before body parsing, so requests the parser rejects still get a log line
   app.use(express.json());
   app.get("/api/v1/health", (_req, res) => {
-    res.json({ ok: true });
+    const ok = deps.dbReady(); // 503 when the DB is down, so orchestrators stop routing here
+    res.status(ok ? 200 : 503).json({ ok });
   });
   app.use("/api/v1", userRoutes(deps.userRepo));
   app.get("/docs/openapi.json", (_req, res) => {
