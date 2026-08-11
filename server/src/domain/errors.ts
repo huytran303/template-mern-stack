@@ -5,6 +5,7 @@ export class DomainError extends Error {
   constructor(
     message: string,
     readonly kind: DomainErrorKind = "validation",
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = "DomainError";

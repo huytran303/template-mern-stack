@@ -13,8 +13,25 @@ const User = z.object({
   createdAt: z.string().datetime(),
 }) satisfies z.ZodType<Wire<DomainUser>>;
 
-const ApiError = z.object({ error: z.string() });
+const ApiError = z.object({
+  statusCode: z.number(),
+  error: z.string(),
+  message: z.string(),
+  details: z.unknown().optional(),
+  timestamp: z.string(),
+  path: z.string(),
+});
 const Health = z.object({ ok: z.boolean() });
+
+// Success envelope every 2xx response is wrapped in — see interface/http/response.ts.
+function envelope<T extends z.ZodTypeAny>(data: T) {
+  return z.object({
+    statusCode: z.number(),
+    message: z.string(),
+    data,
+    timestamp: z.string(),
+  });
+}
 
 export const openApiDocument = createDocument({
   openapi: "3.1.0",
@@ -43,7 +60,7 @@ export const openApiDocument = createDocument({
         responses: {
           "200": {
             description: "Newest users first, at most `limit` (default 20, max 100)",
-            content: { "application/json": { schema: z.array(User) } },
+            content: { "application/json": { schema: envelope(z.array(User)) } },
           },
           "400": {
             description: "Invalid limit",
@@ -59,7 +76,7 @@ export const openApiDocument = createDocument({
         responses: {
           "201": {
             description: "Created user",
-            content: { "application/json": { schema: User } },
+            content: { "application/json": { schema: envelope(User) } },
           },
           "400": {
             description: "Validation error",

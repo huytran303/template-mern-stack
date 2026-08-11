@@ -1,6 +1,7 @@
 import { STATUS_CODES } from "node:http";
 import type { NextFunction, Request, Response } from "express";
 import { DomainError, type DomainErrorKind } from "../../domain/errors.js";
+import { fail } from "./response.js";
 
 const DOMAIN_STATUS: Record<DomainErrorKind, number> = {
   validation: 400,
@@ -33,10 +34,10 @@ function clientErrorStatus(err: unknown): number | undefined {
   return typeof code === "number" && code >= 400 && code < 500 ? code : undefined;
 }
 
-export function errorHandler(err: unknown, _req: Request, res: Response, next: NextFunction) {
+export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) return next(err); // too late to write a body — let express close the socket
   if (err instanceof DomainError) {
-    res.status(DOMAIN_STATUS[err.kind]).json({ error: err.message });
+    fail(res, req, DOMAIN_STATUS[err.kind], err.kind, err.message, err.details);
     return;
   }
   // Framework 4xx (body-parser 400/413/415, http-errors) keep their status, but the client gets
@@ -44,9 +45,10 @@ export function errorHandler(err: unknown, _req: Request, res: Response, next: N
   const status = clientErrorStatus(err);
   if (status !== undefined) {
     console.warn(`client error ${status}: ${err instanceof Error ? err.message : String(err)}`);
-    res.status(status).json({ error: (STATUS_CODES[status] ?? "bad request").toLowerCase() });
+    const reason = (STATUS_CODES[status] ?? "bad request").toLowerCase();
+    fail(res, req, status, reason, reason);
     return;
   }
   console.error(err);
-  res.status(500).json({ error: "internal server error" });
+  fail(res, req, 500, "internal server error", "internal server error");
 }

@@ -2,6 +2,7 @@ import express from "express";
 import type { UserRepository } from "../../domain/user.js";
 import { errorHandler, requestLogger } from "./middleware.js";
 import { openApiDocument } from "./openapi.js";
+import { fail } from "./response.js";
 import { userRoutes } from "./user-routes.js";
 
 // Serialized once — the document never changes after boot.
@@ -50,8 +51,8 @@ export function buildApp(deps: { userRepo: UserRepository; dbReady: () => boolea
   app.get("/docs", (_req, res) => {
     res.type("html").send(docsHtml);
   });
-  app.use((_req, res) => {
-    res.status(404).json({ error: "not found" }); // keep the {error} JSON contract on unknown paths
+  app.use((req, res) => {
+    fail(res, req, 404, "not_found", "not found"); // keep the error envelope contract on unknown paths
   });
   app.use(errorHandler);
   return app;

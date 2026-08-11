@@ -1,6 +1,6 @@
 # Constitution
 
-Version 1.2.0 · Status: ACTIVE (amendable — see §Amendment)
+Version 1.3.0 · Status: ACTIVE (amendable — see §Amendment)
 
 **Principle: a rule without a machine check is a suggestion.** Every rule below names
 its check. Machine checks live in `scripts/check-constitution.sh` and `.github/workflows/ci.yml`;
@@ -46,8 +46,8 @@ and then via `mongoose-delete` plugin (automatic query scoping) — never a hand
 
 ### LOG-01 · Observability
 Every request is logged as one JSON line with duration (`requestLogger` middleware).
-Stack traces and internal error details go to server logs only; clients get
-`{error}` with a generic message on 500 and on framework 4xx (which are logged server-side —
+Stack traces and internal error details go to server logs only; clients get the ARCH-02 error
+envelope with a generic message on 500 and on framework 4xx (which are logged server-side —
 `err.message` can echo raw request bytes).
 **Check:** grep asserts `requestLogger` and `errorHandler` are mounted in `server.ts`; rest is review.
 
@@ -63,14 +63,21 @@ express only in `interface/`; domain never logs.
 **Check:** grep (static, barrel, and dynamic imports; both directions; framework confinement;
 `console.*` in domain) in `check-constitution.sh`.
 
-### ARCH-02 · Error handling
-Business failures throw `DomainError(message, kind)`; middleware maps the kind to a status:
-`validation` → 400 (default), `conflict` → 409, `not_found` → 404, always as `{error}` with the
-domain message. Framework 4xx (body parser etc.) keep their status but clients get the generic
-reason phrase, never `err.message`. Everything else → 500 with a generic message.
-No stack traces to clients (see LOG-01).
+### ARCH-02 · Response contract & error handling
+Every response goes through one of two envelopes, built by `interface/http/response.ts` —
+handlers never call `res.json()` directly:
+- Success (`ok()`): `{ statusCode, message, data, timestamp }`.
+- Error (`fail()`): `{ statusCode, error, message, details?, timestamp, path }`.
+
+Business failures throw `DomainError(message, kind, details?)`; middleware maps the kind to a
+status: `validation` → 400 (default), `conflict` → 409, `not_found` → 404, `error` set to the
+kind, `message` to the domain message, `details` to whatever the domain attached (e.g. zod
+issues). Framework 4xx (body parser etc.) keep their status but clients get the generic reason
+phrase, never `err.message`. Everything else → 500 with a generic message. No stack traces to
+clients (see LOG-01).
 **Check:** the mapping lives in one place (`interface/http/middleware.ts`) with unit tests;
-review confirms new code throws `DomainError` instead of ad-hoc status codes.
+review confirms new code throws `DomainError` instead of ad-hoc status codes and uses
+`ok()`/`fail()` instead of `res.json()`.
 
 ### ARCH-03 · API contract
 Any endpoint change updates the API contract (`server/src/interface/http/openapi.ts`, served

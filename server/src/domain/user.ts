@@ -32,12 +32,22 @@ export const ListUsersQuery = z.object({
 
 export function newUser(input: unknown): User {
   const parsed = CreateUser.safeParse(input);
-  if (!parsed.success) throw new DomainError(parsed.error.issues[0]?.message ?? "invalid input");
+  if (!parsed.success)
+    throw new DomainError(
+      parsed.error.issues[0]?.message ?? "invalid input",
+      "validation",
+      parsed.error.issues,
+    );
   return { id: randomUUID(), ...parsed.data, createdAt: new Date() };
 }
 
 export function newListQuery(input: unknown): z.infer<typeof ListUsersQuery> {
   const parsed = ListUsersQuery.safeParse(input);
-  if (!parsed.success) throw new DomainError(parsed.error.issues[0]?.message ?? "invalid query");
+  if (!parsed.success)
+    throw new DomainError(
+      parsed.error.issues[0]?.message ?? "invalid query",
+      "validation",
+      parsed.error.issues,
+    );
   return parsed.data;
 }

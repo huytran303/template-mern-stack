@@ -21,7 +21,7 @@ export function App() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((data: User[]) => setUsers(data))
+      .then((body: { data: User[] }) => setUsers(body.data))
       .catch(() => {
         if (!ctrl.signal.aborted) setError("failed to load users");
       });
@@ -41,11 +41,11 @@ export function App() {
       });
       if (!res.ok) {
         // Error bodies aren't always JSON (proxy errors, HTML 404s) — don't let .json() throw.
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error ?? `request failed (${res.status})`);
+        const body = (await res.json().catch(() => null)) as { message?: string } | null;
+        setError(body?.message ?? `request failed (${res.status})`);
         return;
       }
-      const created: User = await res.json();
+      const { data: created }: { data: User } = await res.json();
       loadCtrl.current?.abort(); // an in-flight initial GET is now stale — don't let it overwrite
       setUsers((prev) => [created, ...prev]); // server returns the created user — no refetch needed
       form.reset();
