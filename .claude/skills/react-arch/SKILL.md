@@ -17,7 +17,7 @@ You are the frontend architecture guardian for this project. Load and enforce th
 - **React 19** + TypeScript, built with **Vite** (`client/`, one of two npm workspaces alongside `server/`).
 - No router — the app is a single page (`App.tsx`).
 - No state library — local component state (`useState`/`useReducer`) is enough at this size.
-- No HTTP client library — native `fetch`, called against `/api/v1/...` (Vite dev-proxies `/api` to the server).
+- No HTTP client library — native `fetch`, called against `/api/v1/...` (Vite dev-proxies `/api` to the server). **TanStack React Query** (`@tanstack/react-query`) manages server state: `useQuery`/`useMutation` over those fetch functions, `QueryClientProvider` in `main.tsx`. Pass the queryFn's `signal` to `fetch`; after a mutation whose response already contains the new entity, `cancelQueries` + `setQueryData` instead of refetching.
 - **Tailwind v4**, CSS-first (`@tailwindcss/vite` plugin, no `tailwind.config.*`). Color tokens are declared in `client/src/index.css` inside `@theme` as `--color-<name>-app`, which generates the `<name>-app` utilities (`bg-danger-app`, `text-danger-app`, …).
 - Dark mode is manual (not `prefers-color-scheme`-only): a `.dark` class toggled on `<html>` (see `App.tsx`'s `theme` state) overrides the same tokens under `:root.dark` in `index.css`. No `dark:` Tailwind variant is used — the token indirection alone repaints every `*-app` utility.
 - Locale is manual too: `client/src/i18n.ts` exports `STRINGS: Record<Locale, {...}>` (`en`/`vi`); `App.tsx` holds a `locale` state, persists it to `localStorage`, and reads `t = STRINGS[locale]`. No i18n library — add one only once a second page's worth of strings makes the flat dictionary unwieldy.
@@ -76,8 +76,8 @@ Decision tree for a new component:
 
 ## Fetch / Service Rules
 
-1. Use native `fetch`. No axios — nothing here needs interceptors, auth refresh, or request cancellation beyond `AbortController`.
-2. One call site (today, `App.tsx`) → call `fetch` inline. Don't build a wrapper layer nobody needs yet.
+1. Use native `fetch` wrapped in TanStack React Query (`useQuery`/`useMutation`). No axios — nothing here needs interceptors or auth refresh, and React Query passes an `AbortSignal` to every queryFn (forward it to `fetch`).
+2. One call site (today, `App.tsx`) → typed `fetchX`/`createX` functions co-located above the component. Don't build a wrapper layer nobody needs yet.
 3. Second call site for the same domain → extract to `services/<domain>.ts`: one exported async function per endpoint, typed request/response.
 4. Server envelope (`server/src/interface/http/response.ts`) — type against it, don't invent an ad hoc shape:
    - success: `{ statusCode, message, data, timestamp }`

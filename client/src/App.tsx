@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { AppButton } from "@/components/ui/button/AppButton";
 import { AppCard } from "@/components/ui/card/AppCard";
@@ -26,14 +27,33 @@ function initialLocale(): Locale {
   return stored === "vi" ? "vi" : "en";
 }
 
+async function fetchUsers({ signal }: { signal: AbortSignal }): Promise<User[]> {
+  const res = await fetch("/api/v1/users", { signal });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const body: { data: User[] } = await res.json();
+  return body.data;
+}
+
+async function createUser(input: { email: FormDataEntryValue | null; name: FormDataEntryValue | null }): Promise<User> {
+  const res = await fetch("/api/v1/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    // Error bodies aren't always JSON (proxy errors, HTML 404s) — don't let .json() throw.
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "");
+  }
+  const body: { data: User } = await res.json();
+  return body.data;
+}
+
 export function App() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [locale, setLocale] = useState<Locale>(initialLocale);
-  const loadCtrl = useRef<AbortController | null>(null);
   const t = STRINGS[locale];
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -44,52 +64,35 @@ export function App() {
     localStorage.setItem("locale", locale);
   }, [locale]);
 
-  useEffect(() => {
-    // Abortable so a slow initial GET can't resolve late and clobber newer state
-    // (after unmount, or after a POST already prepended a user).
-    const ctrl = new AbortController();
-    loadCtrl.current = ctrl;
-    fetch("/api/v1/users", { signal: ctrl.signal })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((body: { data: User[] }) => setUsers(body.data))
-      .catch(() => {
-        if (!ctrl.signal.aborted) setError(t.loadError);
-      });
-    return () => ctrl.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount, same as before locale was added
-  }, []);
+  const usersQuery = useQuery({ queryKey: ["users"], queryFn: fetchUsers });
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+  const createMutation = useMutation({
+    mutationFn: createUser,
+    onSuccess: async (created) => {
+      // Server returns the created user — prepend into the cache, no refetch needed.
+      // cancelQueries first so an in-flight GET can't resolve late and clobber it.
+      await queryClient.cancelQueries({ queryKey: ["users"] });
+      queryClient.setQueryData<User[]>(["users"], (prev = []) => [created, ...prev]);
+    },
+  });
+
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError("");
-    setPending(true);
     const form = e.currentTarget;
     const data = new FormData(form);
-    try {
-      const res = await fetch("/api/v1/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.get("email"), name: data.get("name") }),
-      });
-      if (!res.ok) {
-        // Error bodies aren't always JSON (proxy errors, HTML 404s) — don't let .json() throw.
-        const body = (await res.json().catch(() => null)) as { message?: string } | null;
-        setError(body?.message ?? `${t.requestFailed} (${res.status})`);
-        return;
-      }
-      const { data: created }: { data: User } = await res.json();
-      loadCtrl.current?.abort(); // an in-flight initial GET is now stale — don't let it overwrite
-      setUsers((prev) => [created, ...prev]); // server returns the created user — no refetch needed
-      form.reset();
-    } catch {
-      setError(t.requestFailed);
-    } finally {
-      setPending(false);
-    }
+    createMutation.mutate(
+      { email: data.get("email"), name: data.get("name") },
+      { onSuccess: () => form.reset() },
+    );
   }
+
+  const users = usersQuery.data ?? [];
+  const error = createMutation.isError
+    ? createMutation.error.message || t.requestFailed
+    : usersQuery.isError
+      ? t.loadError
+      : "";
+  const pending = createMutation.isPending;
 
   return (
     <main className="mx-auto my-8 max-w-[480px] font-sans">
