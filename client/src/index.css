@@ -1,5 +1,36 @@
 @import "tailwindcss";
 
+/* App owns scrolling, not the browser: html/body never scroll, #root does. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  overflow-y: auto;
+  scrollbar-color: var(--color-primary-app) transparent;
+  scrollbar-width: thin;
+}
+
+#root::-webkit-scrollbar {
+  width: 10px;
+}
+
+#root::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#root::-webkit-scrollbar-thumb {
+  background: var(--color-primary-app);
+  border-radius: 9999px;
+}
+
 /* Design tokens — the ONLY place color values (hex/named) are allowed.
    Naming: --color-<name>-app generates the `<name>-app` Tailwind color
    (e.g. bg-danger-app, text-danger-app, border-danger-app). */
@@ -7,4 +38,20 @@
   --color-text-app: #1a1a1a;
   --color-bg-app: #ffffff;
   --color-danger-app: #dc143c;
+  --color-primary-app: #2563eb;
+  --color-warning-app: #f97316;
+}
+
+/* Clickable elements must show a pointer cursor — the browser UA stylesheet
+   defaults <button> to `cursor: default`, not pointer. Custom non-native
+   clickable elements should use role="button" to pick up this rule. */
+button:not(:disabled),
+a[href],
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
 }
