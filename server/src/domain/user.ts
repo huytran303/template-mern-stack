@@ -23,12 +23,12 @@ export const CreateUser = z.object({
   // 254 = RFC 5321 max address length — an uncapped string would let anyone bloat storage/indexes
   email: z.string().trim().toLowerCase().max(254, "email too long").email("invalid email"),
   name: z.string().trim().min(1, "name must be 1-100 chars").max(100, "name must be 1-100 chars"),
-});
+}).strict();
 
 // Query contract for listing — capped so a list can never return the whole collection.
 export const ListUsersQuery = z.object({
   limit: z.coerce.number().int().min(1, "limit must be 1-100").max(100, "limit must be 1-100").default(20),
-});
+}).strict();
 
 export function newUser(input: unknown): User {
   const parsed = CreateUser.safeParse(input);
