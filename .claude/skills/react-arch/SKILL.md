@@ -7,6 +7,7 @@ triggers:
   - adding a fetch call to the backend
   - applying color or conditional-class styling in client/src
   - deciding whether to add a router or a state library
+  - adding or changing a translatable string, or styling that must hold up across theme/locale
 ---
 
 You are the frontend architecture guardian for this project. Load and enforce these rules before any implementation begins.
@@ -18,6 +19,8 @@ You are the frontend architecture guardian for this project. Load and enforce th
 - No state library — local component state (`useState`/`useReducer`) is enough at this size.
 - No HTTP client library — native `fetch`, called against `/api/v1/...` (Vite dev-proxies `/api` to the server).
 - **Tailwind v4**, CSS-first (`@tailwindcss/vite` plugin, no `tailwind.config.*`). Color tokens are declared in `client/src/index.css` inside `@theme` as `--color-<name>-app`, which generates the `<name>-app` utilities (`bg-danger-app`, `text-danger-app`, …).
+- Dark mode is manual (not `prefers-color-scheme`-only): a `.dark` class toggled on `<html>` (see `App.tsx`'s `theme` state) overrides the same tokens under `:root.dark` in `index.css`. No `dark:` Tailwind variant is used — the token indirection alone repaints every `*-app` utility.
+- Locale is manual too: `client/src/i18n.ts` exports `STRINGS: Record<Locale, {...}>` (`en`/`vi`); `App.tsx` holds a `locale` state, persists it to `localStorage`, and reads `t = STRINGS[locale]`. No i18n library — add one only once a second page's worth of strings makes the flat dictionary unwieldy.
 - `cn()` at `client/src/utils/cn.ts` — `twMerge(clsx(inputs))` — for any conditional class.
 - `@/` path alias configured (`client/tsconfig.json` `paths`, `client/vite.config.ts` `resolve.alias`) → `client/src/*`.
 
@@ -31,7 +34,8 @@ Current:
 client/src/
   main.tsx     # entry point, mounts App
   App.tsx      # the entire UI today (the app's one page — no pages/ folder yet, no router)
-  index.css    # Tailwind import + @theme color tokens (only place hex/named colors are allowed)
+  index.css    # Tailwind import + @theme color tokens (only place hex/named colors are allowed) + :root.dark overrides
+  i18n.ts      # Locale type + STRINGS dictionary (en/vi) — flat key -> string per locale, no nesting
   utils/
     cn.ts      # twMerge(clsx(inputs)) — use for every conditional className
   components/
@@ -90,13 +94,25 @@ Decision tree for a new component:
 ## Styling Rules
 
 1. Tailwind utility classes on elements — this is the default way to style. Only fall back to inline `style` when Tailwind genuinely can't express the value (see `App.tsx`'s `max-w-[480px]` vs. an arbitrary non-color value that has no utility).
-2. No hardcoded hex/named colors anywhere in `.ts`/`.tsx` — ESLint-enforced (`eslint.config.mjs`), and this also catches Tailwind arbitrary-value colors like `text-[#dc143c]`. Add the token to the `@theme` block in `client/src/index.css` as `--color-<name>-app`, then use the generated utility (`bg-<name>-app`, `text-<name>-app`, `border-<name>-app`, …). Tailwind's own palette classes (`bg-gray-800`, `text-white`, …) are not hardcoded colors and are fine.
+2. No hardcoded hex/named colors anywhere in `.ts`/`.tsx` — ESLint-enforced (`eslint.config.mjs`), and this also catches Tailwind arbitrary-value colors like `text-[#dc143c]`. Add the token to the `@theme` block in `client/src/index.css` as `--color-<name>-app`, then use the generated utility (`bg-<name>-app`, `text-<name>-app`, `border-<name>-app`, …), with a `:root.dark` override alongside it. Tailwind's own palette classes (`bg-gray-800`, `text-white`, …) are not hardcoded colors and ESLint won't flag them, but reserve them for colors that are deliberately identical in both themes (e.g. white button text baked onto a fixed-color primary background) — anything sitting on a themed surface (body text, borders, muted/secondary text) goes through a token so it repaints with the `.dark` toggle. `border-app` (borders) and `muted-app` (secondary/disabled text) already exist — reuse them before adding a new one.
 3. No template literal in `className` — ESLint-enforced. Default class is the base string; a condition only *adds* an override class for the exception, never toggles two opposite classes — always through `cn()`:
    ```tsx
    className={cn("rounded bg-gray-800 px-3 py-1 text-white", { "opacity-50": pending })}
    ```
 4. `cn()` lives at `client/src/utils/cn.ts` (`twMerge(clsx(inputs))`) — import it, never re-implement it. `tailwind-merge` matters here: it resolves conflicting Tailwind utilities between the base and the override (e.g. a base `px-2` and an override `px-4`) in favor of the later one, which plain string concatenation can't do.
 5. No CSS-in-JS, no CSS Modules — Tailwind utilities cover styling needs at this size. Global tokens and the Tailwind `@import` live in `index.css`; nothing else goes there.
+
+## Theme & Locale Safety
+
+Both `theme` and `locale` are runtime toggles a user can flip on the same page — new UI must survive both without a code change.
+
+1. **Theme.** Never assume today's light-mode contrast (e.g. "text is dark, so a light border is always visible") — the same class runs under `.dark` too. Check new markup with the theme toggle flipped, not just at default.
+2. **Locale.** `vi` strings in `client/src/i18n.ts` run 30-60% longer than their `en` counterpart (`"Users"` → `"Người dùng"`, `"Disabled"` → `"Vô hiệu hoá"`). Any element sized to fit today's English string will overflow or clip once `vi` is selected.
+   - No `whitespace-nowrap` on an element rendering a `STRINGS` value.
+   - No fixed pixel width wrapping a translatable label — let it size to content, or wrap.
+   - Any flex row of buttons/pills/labels that includes a translatable string needs `flex-wrap` (see the header controls and the `AppButton`/`AppInput` demo rows in `App.tsx`), so it stacks instead of overflowing at the app's narrow `max-w-[480px]` column.
+   - When adding a new key to `STRINGS`, sanity-check its layout with the longer of the two locales selected, not just `en`.
+3. Prefer letting Flexbox/Grid reflow over `truncate` for translatable text — this app has no tooltip primitive yet, so a truncated label with no way to read the full string is a worse outcome than a taller row.
 
 ## Import Conventions
 
@@ -117,6 +133,8 @@ Decision tree for a new component:
 - [ ] Single-use UI stays inline, not pre-split into its own file
 - [ ] Fetch calls check `res.ok` and handle non-JSON error bodies
 - [ ] Loading and error states handled explicitly
-- [ ] No hardcoded colors — token declared in `index.css`'s `@theme` as `--color-<name>-app`, consumed via the generated Tailwind utility
+- [ ] No hardcoded colors — token declared in `index.css`'s `@theme` as `--color-<name>-app` with a `:root.dark` override, consumed via the generated Tailwind utility (static Tailwind palette classes only for colors fixed across both themes)
 - [ ] No template literals in `className` — `cn()` used for any conditional class
+- [ ] Checked with the theme toggle flipped — text/borders/muted content still readable under `.dark`
+- [ ] Checked with `locale` set to `vi` (longer strings) — no overflow/clipping; translatable rows have `flex-wrap`, no `whitespace-nowrap`, no fixed pixel widths
 - [ ] No new dependency (router, state lib, HTTP client) added without a current, real need

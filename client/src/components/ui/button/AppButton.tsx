@@ -13,7 +13,7 @@ export function AppButton({ variant = "primary", className, ...props }: AppButto
         "rounded px-3 py-1 disabled:opacity-50",
         {
           "bg-primary-app text-white": variant === "primary",
-          "border border-gray-300 text-text-app": variant === "secondary",
+          "border border-border-app text-text-app": variant === "secondary",
         },
         className,
       )}

@@ -16,6 +16,8 @@ body {
   overflow-y: auto;
   scrollbar-color: var(--color-primary-app) transparent;
   scrollbar-width: thin;
+  background-color: var(--color-bg-app);
+  color: var(--color-text-app);
 }
 
 #root::-webkit-scrollbar {
@@ -40,6 +42,18 @@ body {
   --color-danger-app: #dc143c;
   --color-primary-app: #2563eb;
   --color-warning-app: #f97316;
+  --color-border-app: #e5e7eb;
+  --color-muted-app: #6b7280;
+}
+
+/* Manual dark mode — toggled via a "dark" class on <html>, see App.tsx.
+   Overrides the same custom properties the @theme block sets on :root,
+   so every generated *-app utility repaints without touching components. */
+:root.dark {
+  --color-text-app: #f5f5f5;
+  --color-bg-app: #0a0a0a;
+  --color-border-app: #27272a;
+  --color-muted-app: #a1a1aa;
 }
 
 /* Clickable elements must show a pointer cursor — the browser UA stylesheet

@@ -9,7 +9,7 @@ interface AppCardProps {
 }
 
 export function AppCard({ children, className, href }: AppCardProps) {
-  const cardClassName = cn("rounded border border-gray-200 p-4", className);
+  const cardClassName = cn("rounded border border-border-app p-4", className);
 
   if (href) {
     return (
