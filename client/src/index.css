@@ -1,6 +1,10 @@
-/* Design tokens — the ONLY place color values (hex/named) are allowed. */
-:root {
-  --color-text: #1a1a1a;
-  --color-bg: #ffffff;
-  --color-danger: #dc143c;
+@import "tailwindcss";
+
+/* Design tokens — the ONLY place color values (hex/named) are allowed.
+   Naming: --color-<name>-app generates the `<name>-app` Tailwind color
+   (e.g. bg-danger-app, text-danger-app, border-danger-app). */
+@theme {
+  --color-text-app: #1a1a1a;
+  --color-bg-app: #ffffff;
+  --color-danger-app: #dc143c;
 }
