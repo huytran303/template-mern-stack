@@ -5,8 +5,19 @@ import { cn } from "@/utils/cn";
 interface AppCardProps {
   children: ReactNode;
   className?: string;
+  href?: string;
 }
 
-export function AppCard({ children, className }: AppCardProps) {
-  return <div className={cn("rounded border border-gray-200 p-4", className)}>{children}</div>;
+export function AppCard({ children, className, href }: AppCardProps) {
+  const cardClassName = cn("rounded border border-gray-200 p-4", className);
+
+  if (href) {
+    return (
+      <a href={href} className={cardClassName}>
+        {children}
+      </a>
+    );
+  }
+
+  return <div className={cardClassName}>{children}</div>;
 }

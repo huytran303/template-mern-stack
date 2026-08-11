@@ -37,6 +37,7 @@ npm test                    # unit always; integration when MONGO_URI is set (au
 - Unit tests (`tests/unit/`) must run with no DB and no network — CI runs them in a job with no Mongo.
 - Client: never hardcode colors (hex or named) in TS/TSX — define tokens in `client/src/index.css` and reference them with `var(--…)`. ESLint bans hex literals in `client/src/`.
 - Client conditional styling: CSS-override pattern — the default state is the base class/style; conditions only ADD an override class for the exception state (never toggle two opposite classes on `cond` / `!cond`). No template literals in `className` (ESLint-banned) — use a `cn(base, { override: condition })` helper. Tailwind v4 projects: no `tailwind.config`, tokens live in the global CSS as `--color-[name]-app` → use `text-[name]-app`; arbitrary values like `text-[#hex]` are banned.
+- Client clickable elements get `cursor: pointer` automatically from a global rule in `client/src/index.css` (`button`, `a[href]`, `[role="button"]`) — don't add `cursor-pointer` per component. A custom non-native clickable element (e.g. a `div` with `onClick`) must get `role="button"` to pick up the same rule.
 
 ## Process
 
