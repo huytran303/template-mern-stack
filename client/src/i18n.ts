@@ -14,6 +14,13 @@ const en = {
   disabled: "Disabled",
   typeSomething: "Type something",
   nothingHere: "Nothing here yet.",
+  close: "Close",
+  success: "Success",
+  danger: "Error",
+  warning: "Warning",
+  toastSuccess: "Saved successfully.",
+  toastDanger: "Something went wrong.",
+  toastWarning: "Please double-check your input.",
 };
 
 export const STRINGS: Record<Locale, Record<keyof typeof en, string>> = {
@@ -32,5 +39,12 @@ export const STRINGS: Record<Locale, Record<keyof typeof en, string>> = {
     disabled: "Vô hiệu hoá",
     typeSomething: "Nhập gì đó",
     nothingHere: "Chưa có gì ở đây.",
+    close: "Đóng",
+    success: "Thành công",
+    danger: "Lỗi",
+    warning: "Cảnh báo",
+    toastSuccess: "Lưu thành công.",
+    toastDanger: "Đã xảy ra lỗi.",
+    toastWarning: "Vui lòng kiểm tra lại dữ liệu.",
   },
 };

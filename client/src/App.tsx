@@ -4,6 +4,7 @@ import { AppButton } from "@/components/ui/button/AppButton";
 import { AppCard } from "@/components/ui/card/AppCard";
 import { AppEmptyState } from "@/components/ui/empty-state/AppEmptyState";
 import { AppInput } from "@/components/ui/input/AppInput";
+import { AppToastViewport, useToasts } from "@/components/ui/toast/AppToast";
 import { STRINGS, type Locale } from "@/i18n";
 
 interface User {
@@ -32,6 +33,7 @@ export function App() {
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const loadCtrl = useRef<AbortController | null>(null);
+  const { toasts, show, dismiss } = useToasts();
   const t = STRINGS[locale];
 
   useEffect(() => {
@@ -146,7 +148,16 @@ export function App() {
             <AppEmptyState message={t.nothingHere} />
           </div>
         </AppCard>
+        <AppCard>
+          <p className="text-sm font-medium">AppToast</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <AppButton onClick={() => show(t.toastSuccess, "success")}>{t.success}</AppButton>
+            <AppButton onClick={() => show(t.toastDanger, "danger")}>{t.danger}</AppButton>
+            <AppButton onClick={() => show(t.toastWarning, "warning")}>{t.warning}</AppButton>
+          </div>
+        </AppCard>
       </div>
+      <AppToastViewport toasts={toasts} closeLabel={t.close} onDismiss={dismiss} />
     </main>
   );
 }

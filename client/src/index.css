@@ -44,6 +44,13 @@ body {
   --color-warning-app: #f97316;
   --color-border-app: #e5e7eb;
   --color-muted-app: #6b7280;
+  /* Toast/alert surfaces: tinted bg + deep text of the same hue, ≥7:1 contrast. */
+  --color-success-bg-app: #dcfce7;
+  --color-success-text-app: #166534;
+  --color-danger-bg-app: #fee2e2;
+  --color-danger-text-app: #991b1b;
+  --color-warning-bg-app: #ffedd5;
+  --color-warning-text-app: #9a3412;
 }
 
 /* Manual dark mode — toggled via a "dark" class on <html>, see App.tsx.
@@ -54,6 +61,12 @@ body {
   --color-bg-app: #0a0a0a;
   --color-border-app: #27272a;
   --color-muted-app: #a1a1aa;
+  --color-success-bg-app: #14532d;
+  --color-success-text-app: #bbf7d0;
+  --color-danger-bg-app: #7f1d1d;
+  --color-danger-text-app: #fecaca;
+  --color-warning-bg-app: #7c2d12;
+  --color-warning-text-app: #fed7aa;
 }
 
 /* Clickable elements must show a pointer cursor — the browser UA stylesheet
