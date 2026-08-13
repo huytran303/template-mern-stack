@@ -6,6 +6,7 @@ import { AppCard } from "@/components/ui/card/AppCard";
 import { AppEmptyState } from "@/components/ui/empty-state/AppEmptyState";
 import { AppInput } from "@/components/ui/input/AppInput";
 import { AppSearchInput } from "@/components/ui/search-input/AppSearchInput";
+import { AppSkeleton } from "@/components/ui/skeleton/AppSkeleton";
 import { AppSwitch } from "@/components/ui/switch/AppSwitch";
 import { AppTable, appTableFeatures } from "@/components/ui/table/AppTable";
 import { AppTableColumnToggle } from "@/components/ui/table/AppTableColumnToggle";
@@ -140,7 +141,7 @@ export function App() {
         <AppSearchInput className="mt-4 w-full" placeholder={t.searchPlaceholder} onSearch={onSearch} />
         <div className="mt-4 flex flex-col gap-2">
           <AppTableColumnToggle table={table} label={t.columnsLabel} />
-          <AppTable table={table} emptyMessage={search ? t.noResults : t.noUsers} />
+          <AppTable table={table} loading={usersQuery.isPending} emptyMessage={search ? t.noResults : t.noUsers} />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <AppTableLimitSelect value={pagination.pageSize} onChange={onPageSize} label={t.limitLabel} />
             <AppPagination
@@ -175,6 +176,17 @@ export function App() {
           <p className="text-sm font-medium">AppEmptyState</p>
           <div className="mt-2">
             <AppEmptyState message={t.nothingHere} />
+          </div>
+        </AppCard>
+        <AppCard>
+          <p className="text-sm font-medium">AppSkeleton</p>
+          {/* Loading-card pattern: real AppCard frame, skeleton content sized to the future layout. */}
+          <div className="mt-2 flex items-center gap-3">
+            <AppSkeleton className="size-10 rounded-full" />
+            <div className="flex flex-1 flex-col gap-2">
+              <AppSkeleton className="h-4 w-1/3" />
+              <AppSkeleton className="h-4 w-2/3" />
+            </div>
           </div>
         </AppCard>
         <AppCard>

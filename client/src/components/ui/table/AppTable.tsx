@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-table";
 
 import { AppEmptyState } from "@/components/ui/empty-state/AppEmptyState";
+import { AppSkeleton } from "@/components/ui/skeleton/AppSkeleton";
 
 // One feature set for every App table — v9 only ships APIs for registered features,
 // so the whole ui/table/ kit (pagination, column toggle) types against this.
@@ -31,12 +32,14 @@ interface AppTableProps<T extends RowData> {
   table: ReactTable<AppTableFeatures, T>;
   /** Rendered inside the body when there are no rows — header stays visible. */
   emptyMessage: string;
+  /** Initial load: renders a page of skeleton rows instead of the empty state. */
+  loading?: boolean;
 }
 
-export function AppTable<T extends RowData>({ table, emptyMessage }: AppTableProps<T>) {
+export function AppTable<T extends RowData>({ table, emptyMessage, loading }: AppTableProps<T>) {
   const rows = table.getRowModel().rows;
   return (
-    <div className="overflow-x-auto rounded-lg border border-border-app">
+    <div aria-busy={loading} className="overflow-x-auto rounded-lg border border-border-app">
       <table className="w-full text-sm">
         <thead className="bg-surface-app">
           {table.getHeaderGroups().map((headerGroup) => (
@@ -69,7 +72,17 @@ export function AppTable<T extends RowData>({ table, emptyMessage }: AppTablePro
           ))}
         </thead>
         <tbody>
-          {rows.length === 0 ? (
+          {loading ? (
+            Array.from({ length: table.options.state?.pagination?.pageSize ?? 5 }, (_, i) => (
+              <tr key={i} className="border-t border-border-app">
+                {table.getVisibleLeafColumns().map((column) => (
+                  <td key={column.id} className="px-3 py-2">
+                    <AppSkeleton className="h-5" />
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : rows.length === 0 ? (
             <tr className="border-t border-border-app">
               <td colSpan={table.getVisibleLeafColumns().length} className="px-3 py-8 text-center">
                 <AppEmptyState message={emptyMessage} />
