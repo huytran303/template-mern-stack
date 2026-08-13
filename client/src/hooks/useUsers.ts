@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { createUser, fetchUsers } from "@/services/users";
 
@@ -13,6 +13,8 @@ export function useUsers(search = "") {
   return useQuery({
     queryKey: usersKey(search),
     queryFn: ({ signal }) => fetchUsers({ search, signal }),
+    // Show the previous search's rows while the new one loads — no flash to empty.
+    placeholderData: keepPreviousData,
   });
 }
 

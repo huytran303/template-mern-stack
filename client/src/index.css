@@ -44,6 +44,7 @@ body {
   --color-warning-app: #f97316;
   --color-border-app: #e5e7eb;
   --color-muted-app: #6b7280;
+  --color-surface-app: #f9fafb;
 }
 
 /* Manual dark mode — toggled via a "dark" class on <html>, see App.tsx.
@@ -54,6 +55,7 @@ body {
   --color-bg-app: #0a0a0a;
   --color-border-app: #27272a;
   --color-muted-app: #a1a1aa;
+  --color-surface-app: #18181b;
 }
 
 /* Clickable elements must show a pointer cursor — the browser UA stylesheet

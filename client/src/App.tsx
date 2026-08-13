@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { createColumnHelper, useTable } from "@tanstack/react-table";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { createColumnHelper, useTable, type PaginationState } from "@tanstack/react-table";
 
 import { AppButton } from "@/components/ui/button/AppButton";
 import { AppCard } from "@/components/ui/card/AppCard";
@@ -46,8 +46,15 @@ export function App() {
   }, [locale]);
 
   const [search, setSearch] = useState("");
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 5 });
   const usersQuery = useUsers(search);
   const createMutation = useCreateUser();
+
+  // A new search means a new result set — jump back to its first page.
+  const onSearch = useCallback((value: string) => {
+    setSearch(value);
+    setPagination((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }));
+  }, []);
 
   const users = usersQuery.data ?? NO_USERS;
   const columns = useMemo(
@@ -62,7 +69,8 @@ export function App() {
     features: appTableFeatures,
     data: users,
     columns,
-    initialState: { pagination: { pageIndex: 0, pageSize: 5 } },
+    state: { pagination },
+    onPaginationChange: setPagination,
   });
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -102,16 +110,12 @@ export function App() {
           <AppButton disabled={pending}>{t.add}</AppButton>
         </form>
         {error && <p className="mt-2 text-danger-app">{error}</p>}
-        <AppSearchInput className="mt-4 w-full" placeholder={t.searchPlaceholder} onSearch={setSearch} />
-        {users.length === 0 ? (
-          <AppEmptyState message={search ? t.noResults : t.noUsers} />
-        ) : (
-          <div className="mt-4 flex flex-col gap-2">
-            <AppTableColumnToggle table={table} />
-            <AppTable table={table} />
-            <AppTablePagination table={table} prevLabel={t.previousPage} nextLabel={t.nextPage} />
-          </div>
-        )}
+        <AppSearchInput className="mt-4 w-full" placeholder={t.searchPlaceholder} onSearch={onSearch} />
+        <div className="mt-4 flex flex-col gap-2">
+          <AppTableColumnToggle table={table} />
+          <AppTable table={table} emptyMessage={search ? t.noResults : t.noUsers} />
+          <AppTablePagination className="justify-end" table={table} prevLabel={t.previousPage} nextLabel={t.nextPage} />
+        </div>
       </AppCard>
 
       <h2 className="mt-8 text-lg font-semibold">{t.componentDemo}</h2>

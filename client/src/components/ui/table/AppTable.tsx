@@ -7,6 +7,8 @@ import {
   type RowData,
 } from "@tanstack/react-table";
 
+import { AppEmptyState } from "@/components/ui/empty-state/AppEmptyState";
+
 // One feature set for every App table — v9 only ships APIs for registered features,
 // so the whole ui/table/ kit (pagination, column toggle) types against this.
 export const appTableFeatures = tableFeatures({
@@ -18,17 +20,20 @@ export type AppTableFeatures = typeof appTableFeatures;
 
 interface AppTableProps<T extends RowData> {
   table: ReactTable<AppTableFeatures, T>;
+  /** Rendered inside the body when there are no rows — header stays visible. */
+  emptyMessage: string;
 }
 
-export function AppTable<T extends RowData>({ table }: AppTableProps<T>) {
+export function AppTable<T extends RowData>({ table, emptyMessage }: AppTableProps<T>) {
+  const rows = table.getRowModel().rows;
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-lg border border-border-app">
       <table className="w-full text-sm">
-        <thead>
+        <thead className="bg-surface-app">
           {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id} className="border-b border-border-app">
+            <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <th key={header.id} className="px-2 py-1 text-left font-medium text-muted-app">
+                <th key={header.id} className="px-3 py-2 text-left font-medium text-muted-app">
                   {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                 </th>
               ))}
@@ -36,15 +41,23 @@ export function AppTable<T extends RowData>({ table }: AppTableProps<T>) {
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="border-b border-border-app">
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="px-2 py-1">
-                  <table.FlexRender cell={cell} />
-                </td>
-              ))}
+          {rows.length === 0 ? (
+            <tr className="border-t border-border-app">
+              <td colSpan={table.getVisibleLeafColumns().length} className="px-3 py-8 text-center">
+                <AppEmptyState message={emptyMessage} />
+              </td>
             </tr>
-          ))}
+          ) : (
+            rows.map((row) => (
+              <tr key={row.id} className="border-t border-border-app hover:bg-surface-app">
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="px-3 py-2">
+                    <table.FlexRender cell={cell} />
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

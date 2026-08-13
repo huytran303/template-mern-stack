@@ -1,6 +1,7 @@
 import { type ReactTable, type RowData } from "@tanstack/react-table";
 
 import { AppButton } from "@/components/ui/button/AppButton";
+import { cn } from "@/utils/cn";
 import { type AppTableFeatures } from "./AppTable";
 
 interface AppTablePaginationProps<T extends RowData> {
@@ -8,11 +9,17 @@ interface AppTablePaginationProps<T extends RowData> {
   /** Localized aria-labels — the buttons themselves show ‹ / ›. */
   prevLabel: string;
   nextLabel: string;
+  className?: string;
 }
 
-export function AppTablePagination<T extends RowData>({ table, prevLabel, nextLabel }: AppTablePaginationProps<T>) {
+export function AppTablePagination<T extends RowData>({
+  table,
+  prevLabel,
+  nextLabel,
+  className,
+}: AppTablePaginationProps<T>) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <AppButton
         variant="secondary"
         aria-label={prevLabel}
