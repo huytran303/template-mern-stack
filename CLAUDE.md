@@ -43,6 +43,7 @@ npm test                    # unit always; integration when MONGO_URI is set (au
 
 ## Process
 
+- If anything about a task is ambiguous (requirements, scope, which rule applies), ask the user directly — never guess.
 - New feature: copy `.sdd/specs/_template.md` into `.sdd/specs/feat-{name}/SPEC.md` + `TASKS.md` before coding. See `feat-users/` for a worked example.
 - Architecture decisions go in `.sdd/rfcs/ADR-NNN-*.md` — write-once, never edit history.
 - Tests: `tests/unit/` (no DB, no network — in-memory repos), `tests/integration/` (real Mongo, skipped without `MONGO_URI`).
