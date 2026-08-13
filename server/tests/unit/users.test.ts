@@ -17,8 +17,10 @@ function inMemoryRepo(): UserRepository {
       }
       users.push({ ...user });
     },
-    async list(limit) {
+    async list(limit, search) {
+      const q = search?.toLowerCase() ?? "";
       return users
+        .filter((u) => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
         .map((u) => ({ ...u }))
         .sort((a, b) => +b.createdAt - +a.createdAt)
         .slice(0, limit);
@@ -74,5 +76,15 @@ describe("listUsers", () => {
     expect(await listUsers(repo, { limit: "2" })).toHaveLength(2); // query strings coerce
     await expect(listUsers(repo, { limit: "0" })).rejects.toThrow(DomainError);
     await expect(listUsers(repo, { limit: "101" })).rejects.toThrow("limit must be 1-100");
+  });
+
+  it("filters by case-insensitive substring on name or email", async () => {
+    const repo = inMemoryRepo();
+    await registerUser(repo, { email: "ana@example.com", name: "Ana" });
+    await registerUser(repo, { email: "bob@test.dev", name: "Bob" });
+    expect(await listUsers(repo, { search: "ANA" })).toHaveLength(1);
+    expect(await listUsers(repo, { search: "test.dev" })).toHaveLength(1);
+    expect(await listUsers(repo, { search: "  " })).toHaveLength(2); // trims to empty → no filter
+    await expect(listUsers(repo, { search: "x".repeat(101) })).rejects.toThrow("search too long");
   });
 });

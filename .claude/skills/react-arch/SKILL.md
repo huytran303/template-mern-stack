@@ -17,11 +17,12 @@ You are the frontend architecture guardian for this project. Load and enforce th
 - **React 19** + TypeScript, built with **Vite** (`client/`, one of two npm workspaces alongside `server/`).
 - No router — the app is a single page (`App.tsx`).
 - No state library — local component state (`useState`/`useReducer`) is enough at this size.
-- No HTTP client library — native `fetch`, called against `/api/v1/...` (Vite dev-proxies `/api` to the server). **TanStack React Query** (`@tanstack/react-query`) manages server state: `useQuery`/`useMutation` over those fetch functions, `QueryClientProvider` in `main.tsx`. Pass the queryFn's `signal` to `fetch`; after a mutation whose response already contains the new entity, `cancelQueries` + `setQueryData` instead of refetching.
+- No HTTP client library — native `fetch`, called against `/api/v1/...` (Vite dev-proxies `/api` to the server). **TanStack React Query** (`@tanstack/react-query`) manages server state: `useQuery`/`useMutation` over those fetch functions, `QueryClientProvider` in `main.tsx`. Pass the queryFn's `signal` to `fetch`; after a mutation, update the cache per Fetch/Service rule 4 (`setQueryData` when the response determines the new value, `invalidateQueries` when the list is server-filtered).
 - **Tailwind v4**, CSS-first (`@tailwindcss/vite` plugin, no `tailwind.config.*`). Color tokens are declared in `client/src/index.css` inside `@theme` as `--color-<name>-app`, which generates the `<name>-app` utilities (`bg-danger-app`, `text-danger-app`, …).
 - Dark mode is manual (not `prefers-color-scheme`-only): a `.dark` class toggled on `<html>` (see `App.tsx`'s `theme` state) overrides the same tokens under `:root.dark` in `index.css`. No `dark:` Tailwind variant is used — the token indirection alone repaints every `*-app` utility.
 - Locale is manual too: `client/src/i18n.ts` exports `STRINGS: Record<Locale, {...}>` (`en`/`vi`); `App.tsx` holds a `locale` state, persists it to `localStorage`, and reads `t = STRINGS[locale]`. No i18n library — add one only once a second page's worth of strings makes the flat dictionary unwieldy.
 - `cn()` at `client/src/utils/cn.ts` — `twMerge(clsx(inputs))` — for any conditional class.
+- **TanStack Table v9** (`@tanstack/react-table`) for tables — headless: the caller owns the `useTable` instance and passes it to the `ui/table/` kit (`AppTable`, `AppTablePagination`, `AppTableColumnToggle`). v9 ≠ v8: `useTable({ features, columns, data })` with `tableFeatures({...})` (no `useReactTable`/`getCoreRowModel`), `createColumnHelper<typeof features, T>()`, `table.state` instead of `table.getState()`. The shared feature set lives in `AppTable.tsx` (`appTableFeatures`); extend it there when a table needs sorting/selection/etc. Docs for agents ship in `node_modules/@tanstack/react-table/skills/`. Keep `data`/`columns` referentially stable (module-scope empty fallback, `useMemo` columns).
 - `@/` path alias configured (`client/tsconfig.json` `paths`, `client/vite.config.ts` `resolve.alias`) → `client/src/*`.
 
 Do not add react-router, Redux/Zustand/Valtio, or axios speculatively. Each has a concrete trigger below; add it — and update this skill — when the trigger actually fires, not before.
@@ -49,6 +50,10 @@ client/src/
       card/AppCard.tsx
       input/AppInput.tsx
       empty-state/AppEmptyState.tsx
+      search-input/AppSearchInput.tsx  # debounced search box (trimmed value via onSearch)
+      table/AppTable.tsx               # headless TanStack Table v9 kit: AppTable + AppTablePagination + AppTableColumnToggle + shared appTableFeatures
+      table/AppTablePagination.tsx
+      table/AppTableColumnToggle.tsx
       toast/AppToast.tsx
     custom/    # cross-page, domain-aware components (README placeholder)
     layout/    # Navbar/Sidebar/AuthLayout shells (README placeholder)
@@ -90,9 +95,9 @@ component → hooks/use<Domain>.ts (React Query, owns queryKey) → services/<do
 ```
 
 1. `services/<domain>.ts` — one exported async function per endpoint, typed request/response, entity types (`User`, …) declared here. Never imports React; testable without rendering. Use native `fetch` — no axios (nothing here needs interceptors or auth refresh; if a shared auth header ever appears, add one `apiFetch` helper in `services/`, not a client class).
-2. `hooks/use<Domain>.ts` — `useQuery`/`useMutation` wrappers over the service functions (`useUsers()`, `useCreateUser()`). The domain's `queryKey` is declared once here (`export const usersKey = ["users"] as const`) — never inline `["users"]` strings elsewhere. Forward the queryFn's `signal` to `fetch`.
+2. `hooks/use<Domain>.ts` — `useQuery`/`useMutation` wrappers over the service functions (`useUsers()`, `useCreateUser()`). The domain's `queryKey` is declared once here — a root for prefix-matched cache ops plus a factory that embeds every queryFn input (`usersKeyRoot` / `usersKey(search)` in `useUsers.ts`); never inline `["users"]` strings elsewhere. Every variable the queryFn uses must appear in the key (it's the dependency array). Forward the queryFn's `signal` to `fetch`.
 3. Components share server state through the React Query cache, not props/context: any two components calling `useUsers()` read the same cache entry, and mutations update it for everyone. Server state lives in React Query; client state (theme, locale, form inputs) stays in `useState`.
-4. After a mutation whose response already contains the new entity: `cancelQueries` + `setQueryData` instead of refetching (see `useCreateUser`).
+4. After a mutation: if the response alone determines the new cache value (unfiltered list, response contains the entity), `cancelQueries` + `setQueryData` saves a refetch; if the list is server-filtered/sorted/paginated so the response can't tell where (or whether) the entity lands, `invalidateQueries` on the domain's root key (see `useCreateUser`).
 5. Server envelope (`server/src/interface/http/response.ts`) — type against it, don't invent an ad hoc shape:
    - success: `{ statusCode, message, data, timestamp }`
    - error: `{ statusCode, error, message, details?, timestamp, path }`

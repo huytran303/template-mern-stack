@@ -8,3 +8,4 @@
 | Infra: Mongo repository | — | done |
 | Client: list + add form | — | done |
 | Tests: unit + integration | — | done |
+| Search: `?search=` filter (domain→infra) + debounced client input | — | done |

@@ -1,22 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { createUser, fetchUsers, type User } from "@/services/users";
+import { createUser, fetchUsers } from "@/services/users";
 
-export const usersKey = ["users"] as const;
+// Root key for cross-cutting cache ops (invalidate/cancel match by prefix);
+// usersKey(search) identifies one filtered list — every queryFn input is part of the key.
+export const usersKeyRoot = ["users"] as const;
+export function usersKey(search: string) {
+  return [...usersKeyRoot, search] as const;
+}
 
-export function useUsers() {
-  return useQuery({ queryKey: usersKey, queryFn: fetchUsers });
+export function useUsers(search = "") {
+  return useQuery({
+    queryKey: usersKey(search),
+    queryFn: ({ signal }) => fetchUsers({ search, signal }),
+  });
 }
 
 export function useCreateUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createUser,
-    onSuccess: async (created) => {
-      // Server returns the created user — prepend into the cache, no refetch needed.
-      // cancelQueries first so an in-flight GET can't resolve late and clobber it.
-      await queryClient.cancelQueries({ queryKey: usersKey });
-      queryClient.setQueryData<User[]>(usersKey, (prev = []) => [created, ...prev]);
+    onSuccess: async () => {
+      // The list is server-filtered now — the response alone can't tell whether the new
+      // user matches the active search, so refetch instead of setQueryData.
+      await queryClient.invalidateQueries({ queryKey: usersKeyRoot });
     },
   });
 }

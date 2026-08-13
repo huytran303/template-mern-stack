@@ -4,8 +4,9 @@ export interface User {
   name: string;
 }
 
-export async function fetchUsers({ signal }: { signal: AbortSignal }): Promise<User[]> {
-  const res = await fetch("/api/v1/users", { signal });
+export async function fetchUsers({ search, signal }: { search?: string; signal: AbortSignal }): Promise<User[]> {
+  const qs = search ? `?${new URLSearchParams({ search })}` : "";
+  const res = await fetch(`/api/v1/users${qs}`, { signal });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const body: { data: User[] } = await res.json();
   return body.data;

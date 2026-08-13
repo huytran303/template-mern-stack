@@ -7,5 +7,6 @@ export async function registerUser(repo: UserRepository, input: unknown): Promis
 }
 
 export async function listUsers(repo: UserRepository, query: unknown = {}): Promise<User[]> {
-  return repo.list(newListQuery(query).limit); // async so a validation throw always rejects
+  const q = newListQuery(query); // async so a validation throw always rejects
+  return repo.list(q.limit, q.search);
 }

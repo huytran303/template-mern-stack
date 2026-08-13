@@ -1,14 +1,24 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { createColumnHelper, useTable } from "@tanstack/react-table";
 
 import { AppButton } from "@/components/ui/button/AppButton";
 import { AppCard } from "@/components/ui/card/AppCard";
 import { AppEmptyState } from "@/components/ui/empty-state/AppEmptyState";
 import { AppInput } from "@/components/ui/input/AppInput";
+import { AppSearchInput } from "@/components/ui/search-input/AppSearchInput";
+import { AppTable, appTableFeatures } from "@/components/ui/table/AppTable";
+import { AppTableColumnToggle } from "@/components/ui/table/AppTableColumnToggle";
+import { AppTablePagination } from "@/components/ui/table/AppTablePagination";
 import { AppToaster, appToast } from "@/components/ui/toast/AppToast";
 import { useCreateUser, useUsers } from "@/hooks/useUsers";
 import { STRINGS, type Locale } from "@/i18n";
+import { type User } from "@/services/users";
 
 type Theme = "light" | "dark";
+
+const columnHelper = createColumnHelper<typeof appTableFeatures, User>();
+// Stable fallback — a fresh [] every render would rebuild the table's row models.
+const NO_USERS: User[] = [];
 
 function initialTheme(): Theme {
   const stored = localStorage.getItem("theme");
@@ -35,8 +45,25 @@ export function App() {
     localStorage.setItem("locale", locale);
   }, [locale]);
 
-  const usersQuery = useUsers();
+  const [search, setSearch] = useState("");
+  const usersQuery = useUsers(search);
   const createMutation = useCreateUser();
+
+  const users = usersQuery.data ?? NO_USERS;
+  const columns = useMemo(
+    () =>
+      columnHelper.columns([
+        columnHelper.accessor("name", { header: t.namePlaceholder }),
+        columnHelper.accessor("email", { header: t.emailPlaceholder }),
+      ]),
+    [t],
+  );
+  const table = useTable({
+    features: appTableFeatures,
+    data: users,
+    columns,
+    initialState: { pagination: { pageIndex: 0, pageSize: 5 } },
+  });
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -48,7 +75,6 @@ export function App() {
     );
   }
 
-  const users = usersQuery.data ?? [];
   const error = createMutation.isError
     ? createMutation.error.message || t.requestFailed
     : usersQuery.isError
@@ -76,16 +102,15 @@ export function App() {
           <AppButton disabled={pending}>{t.add}</AppButton>
         </form>
         {error && <p className="mt-2 text-danger-app">{error}</p>}
+        <AppSearchInput className="mt-4 w-full" placeholder={t.searchPlaceholder} onSearch={setSearch} />
         {users.length === 0 ? (
-          <AppEmptyState message={t.noUsers} />
+          <AppEmptyState message={search ? t.noResults : t.noUsers} />
         ) : (
-          <ul className="mt-4 flex flex-col gap-1">
-            {users.map((u) => (
-              <li key={u.id}>
-                {u.name} — {u.email}
-              </li>
-            ))}
-          </ul>
+          <div className="mt-4 flex flex-col gap-2">
+            <AppTableColumnToggle table={table} />
+            <AppTable table={table} />
+            <AppTablePagination table={table} prevLabel={t.previousPage} nextLabel={t.nextPage} />
+          </div>
         )}
       </AppCard>
 

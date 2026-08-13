@@ -14,8 +14,8 @@ export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
   /** Throws DomainError("email already registered", "conflict") on duplicate email. */
   save(user: User): Promise<void>;
-  /** Newest first, at most `limit`. */
-  list(limit: number): Promise<User[]>;
+  /** Newest first, at most `limit`; `search` filters by case-insensitive substring on name or email. */
+  list(limit: number, search?: string): Promise<User[]>;
 }
 
 // Single source of truth for the create-user contract — enforced here, published by openapi.ts.
@@ -28,6 +28,8 @@ export const CreateUser = z.object({
 // Query contract for listing — capped so a list can never return the whole collection.
 export const ListUsersQuery = z.object({
   limit: z.coerce.number().int().min(1, "limit must be 1-100").max(100, "limit must be 1-100").default(20),
+  // capped so a search term can't become an unbounded regex scan
+  search: z.string().trim().max(100, "search too long").optional(),
 }).strict();
 
 export function newUser(input: unknown): User {

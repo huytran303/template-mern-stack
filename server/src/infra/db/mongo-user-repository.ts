@@ -44,8 +44,11 @@ export function mongoUserRepository(): UserRepository {
         throw err;
       }
     },
-    async list(limit) {
-      const docs = await UserModel.find().sort({ createdAt: -1 }).limit(limit).lean();
+    async list(limit, search) {
+      // Escape the (zod-validated, length-capped) term so it matches literally — never as a user-built regex.
+      const rx = search && new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      const filter = rx ? { $or: [{ name: rx }, { email: rx }] } : {};
+      const docs = await UserModel.find(filter).sort({ createdAt: -1 }).limit(limit).lean();
       return docs.map(toDomain);
     },
   };
