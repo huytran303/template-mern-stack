@@ -13,8 +13,10 @@ import { AppTableColumnToggle } from "@/components/ui/table/AppTableColumnToggle
 import { AppTableLimitSelect } from "@/components/ui/table/AppTableLimitSelect";
 import { AppPagination } from "@/components/ui/pagination/AppPagination";
 import { AppToaster, appToast } from "@/components/ui/toast/AppToast";
+import { useTranslation } from "react-i18next";
+
 import { useCreateUser, useUsers } from "@/hooks/useUsers";
-import { STRINGS, type Locale } from "@/i18n";
+import { type Locale } from "@/i18n";
 import { type User } from "@/services/users";
 import { formatDate } from "@/utils/formatDate";
 
@@ -30,24 +32,15 @@ function initialTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function initialLocale(): Locale {
-  const stored = localStorage.getItem("locale");
-  return stored === "vi" ? "vi" : "en";
-}
-
 export function App() {
   const [theme, setTheme] = useState<Theme>(initialTheme);
-  const [locale, setLocale] = useState<Locale>(initialLocale);
-  const t = STRINGS[locale];
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language as Locale; // only ever set to "en" | "vi" (see i18n/index.ts)
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     localStorage.setItem("theme", theme);
   }, [theme]);
-
-  useEffect(() => {
-    localStorage.setItem("locale", locale);
-  }, [locale]);
 
   const [search, setSearch] = useState("");
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 5 });
@@ -68,11 +61,11 @@ export function App() {
   const columns = useMemo(
     () =>
       columnHelper.columns([
-        columnHelper.accessor("name", { header: t.namePlaceholder }),
-        columnHelper.accessor("email", { header: t.emailPlaceholder }),
+        columnHelper.accessor("name", { header: t("users.namePlaceholder") }),
+        columnHelper.accessor("email", { header: t("users.emailPlaceholder") }),
         // ISO strings sort chronologically as text, so the default sortFn is correct.
         columnHelper.accessor("createdAt", {
-          header: t.createdAtHeader,
+          header: t("users.createdAtHeader"),
           cell: (info) => formatDate(info.getValue(), locale),
         }),
       ]),
@@ -100,23 +93,23 @@ export function App() {
   }
 
   const error = createMutation.isError
-    ? createMutation.error.message || t.requestFailed
+    ? createMutation.error.message || t("common.requestFailed")
     : usersQuery.isError
-      ? t.loadError
+      ? t("users.loadError")
       : "";
   const pending = createMutation.isPending;
 
   return (
     <main className="mx-auto my-8 max-w-[480px] font-sans">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold">{t.title}</h1>
+        <h1 className="text-lg font-semibold">{t("users.title")}</h1>
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1 text-sm">
             ☀️
             <AppSwitch
               checked={theme === "dark"}
               onChange={(on) => setTheme(on ? "dark" : "light")}
-              aria-label={t.darkModeLabel}
+              aria-label={t("common.darkModeLabel")}
             />
             🌙
           </span>
@@ -124,8 +117,8 @@ export function App() {
             EN
             <AppSwitch
               checked={locale === "vi"}
-              onChange={(on) => setLocale(on ? "vi" : "en")}
-              aria-label={t.languageLabel}
+              onChange={(on) => void i18n.changeLanguage(on ? "vi" : "en")}
+              aria-label={t("common.languageLabel")}
             />
             VI
           </span>
@@ -133,49 +126,49 @@ export function App() {
       </div>
       <AppCard className="mt-4">
         <form onSubmit={onSubmit} className="flex flex-wrap gap-2">
-          <AppInput name="name" placeholder={t.namePlaceholder} required />
-          <AppInput name="email" type="email" placeholder={t.emailPlaceholder} required />
-          <AppButton disabled={pending}>{t.add}</AppButton>
+          <AppInput name="name" placeholder={t("users.namePlaceholder")} required />
+          <AppInput name="email" type="email" placeholder={t("users.emailPlaceholder")} required />
+          <AppButton disabled={pending}>{t("users.add")}</AppButton>
         </form>
         {error && <p className="mt-2 text-danger-app">{error}</p>}
-        <AppSearchInput className="mt-4 w-full" placeholder={t.searchPlaceholder} onSearch={onSearch} />
+        <AppSearchInput className="mt-4 w-full" placeholder={t("users.searchPlaceholder")} onSearch={onSearch} />
         <div className="mt-4 flex flex-col gap-2">
-          <AppTableColumnToggle table={table} label={t.columnsLabel} />
-          <AppTable table={table} loading={usersQuery.isPending} emptyMessage={search ? t.noResults : t.noUsers} />
+          <AppTableColumnToggle table={table} label={t("users.columnsLabel")} />
+          <AppTable table={table} loading={usersQuery.isPending} emptyMessage={search ? t("users.noResults") : t("users.noUsers")} />
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <AppTableLimitSelect value={pagination.pageSize} onChange={onPageSize} label={t.limitLabel} />
+            <AppTableLimitSelect value={pagination.pageSize} onChange={onPageSize} label={t("users.limitLabel")} />
             <AppPagination
               pageIndex={pagination.pageIndex}
               pageCount={table.getPageCount()}
               onPageChange={(pageIndex) => setPagination((p) => ({ ...p, pageIndex }))}
-              prevLabel={t.previousPage}
-              nextLabel={t.nextPage}
+              prevLabel={t("users.previousPage")}
+              nextLabel={t("users.nextPage")}
             />
           </div>
         </div>
       </AppCard>
 
-      <h2 className="mt-8 text-lg font-semibold">{t.componentDemo}</h2>
+      <h2 className="mt-8 text-lg font-semibold">{t("demo.componentDemo")}</h2>
       <div className="mt-4 flex flex-col gap-4">
         <AppCard>
           <p className="text-sm font-medium">AppButton</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <AppButton>{t.primary}</AppButton>
-            <AppButton variant="secondary">{t.secondary}</AppButton>
-            <AppButton disabled>{t.disabled}</AppButton>
+            <AppButton>{t("demo.primary")}</AppButton>
+            <AppButton variant="secondary">{t("demo.secondary")}</AppButton>
+            <AppButton disabled>{t("demo.disabled")}</AppButton>
           </div>
         </AppCard>
         <AppCard>
           <p className="text-sm font-medium">AppInput</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <AppInput placeholder={t.typeSomething} />
-            <AppInput placeholder={t.disabled} disabled />
+            <AppInput placeholder={t("demo.typeSomething")} />
+            <AppInput placeholder={t("demo.disabled")} disabled />
           </div>
         </AppCard>
         <AppCard>
           <p className="text-sm font-medium">AppEmptyState</p>
           <div className="mt-2">
-            <AppEmptyState message={t.nothingHere} />
+            <AppEmptyState message={t("demo.nothingHere")} />
           </div>
         </AppCard>
         <AppCard>
@@ -192,9 +185,9 @@ export function App() {
         <AppCard>
           <p className="text-sm font-medium">AppToast</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <AppButton onClick={() => appToast.success(t.toastSuccess)}>{t.success}</AppButton>
-            <AppButton onClick={() => appToast.danger(t.toastDanger)}>{t.danger}</AppButton>
-            <AppButton onClick={() => appToast.warning(t.toastWarning)}>{t.warning}</AppButton>
+            <AppButton onClick={() => appToast.success(t("demo.toastSuccess"))}>{t("demo.success")}</AppButton>
+            <AppButton onClick={() => appToast.danger(t("demo.toastDanger"))}>{t("demo.danger")}</AppButton>
+            <AppButton onClick={() => appToast.warning(t("demo.toastWarning"))}>{t("demo.warning")}</AppButton>
           </div>
         </AppCard>
       </div>
