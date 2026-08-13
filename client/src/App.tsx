@@ -1,18 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { AppButton } from "@/components/ui/button/AppButton";
 import { AppCard } from "@/components/ui/card/AppCard";
 import { AppEmptyState } from "@/components/ui/empty-state/AppEmptyState";
 import { AppInput } from "@/components/ui/input/AppInput";
 import { AppToaster, appToast } from "@/components/ui/toast/AppToast";
+import { useCreateUser, useUsers } from "@/hooks/useUsers";
 import { STRINGS, type Locale } from "@/i18n";
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
 
 type Theme = "light" | "dark";
 
@@ -27,33 +21,10 @@ function initialLocale(): Locale {
   return stored === "vi" ? "vi" : "en";
 }
 
-async function fetchUsers({ signal }: { signal: AbortSignal }): Promise<User[]> {
-  const res = await fetch("/api/v1/users", { signal });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const body: { data: User[] } = await res.json();
-  return body.data;
-}
-
-async function createUser(input: { email: FormDataEntryValue | null; name: FormDataEntryValue | null }): Promise<User> {
-  const res = await fetch("/api/v1/users", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  if (!res.ok) {
-    // Error bodies aren't always JSON (proxy errors, HTML 404s) — don't let .json() throw.
-    const body = (await res.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(body?.message ?? "");
-  }
-  const body: { data: User } = await res.json();
-  return body.data;
-}
-
 export function App() {
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const t = STRINGS[locale];
-  const queryClient = useQueryClient();
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -64,24 +35,15 @@ export function App() {
     localStorage.setItem("locale", locale);
   }, [locale]);
 
-  const usersQuery = useQuery({ queryKey: ["users"], queryFn: fetchUsers });
-
-  const createMutation = useMutation({
-    mutationFn: createUser,
-    onSuccess: async (created) => {
-      // Server returns the created user — prepend into the cache, no refetch needed.
-      // cancelQueries first so an in-flight GET can't resolve late and clobber it.
-      await queryClient.cancelQueries({ queryKey: ["users"] });
-      queryClient.setQueryData<User[]>(["users"], (prev = []) => [created, ...prev]);
-    },
-  });
+  const usersQuery = useUsers();
+  const createMutation = useCreateUser();
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
     createMutation.mutate(
-      { email: data.get("email"), name: data.get("name") },
+      { email: String(data.get("email")), name: String(data.get("name")) },
       { onSuccess: () => form.reset() },
     );
   }

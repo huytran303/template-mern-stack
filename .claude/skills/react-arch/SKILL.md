@@ -28,26 +28,33 @@ Do not add react-router, Redux/Zustand/Valtio, or axios speculatively. Each has 
 
 ## Folder Structure
 
-Current:
+Current (full template layout — every folder exists; empty ones carry a README stating what belongs there):
 
 ```
 client/src/
-  main.tsx     # entry point, mounts App
-  App.tsx      # the entire UI today (the app's one page — no pages/ folder yet, no router)
+  main.tsx     # entry point, mounts App inside QueryClientProvider
+  App.tsx      # the app's one page (no router yet)
   index.css    # Tailwind import + @theme color tokens (only place hex/named colors are allowed) + :root.dark overrides
   i18n.ts      # Locale type + STRINGS dictionary (en/vi) — flat key -> string per locale, no nesting
+  services/
+    users.ts   # HTTP layer: one typed async function per endpoint. Knows endpoints, never imports React.
+  hooks/
+    useUsers.ts # React Query layer: useUsers()/useCreateUser(), owns usersKey. Knows the cache, never calls fetch itself.
   utils/
     cn.ts      # twMerge(clsx(inputs)) — use for every conditional className
+  pages/       # one folder per page once a router exists (README placeholder)
   components/
     ui/
       button/AppButton.tsx
       card/AppCard.tsx
       input/AppInput.tsx
       empty-state/AppEmptyState.tsx
-    # custom/ and layout/ — not created yet, see decision table below
+      toast/AppToast.tsx
+    custom/    # cross-page, domain-aware components (README placeholder)
+    layout/    # Navbar/Sidebar/AuthLayout shells (README placeholder)
 ```
 
-Full folder decision table (some rows have no folder yet — create on first use):
+Folder decision table:
 
 | Folder | What goes here |
 |---|---|
@@ -55,8 +62,8 @@ Full folder decision table (some rows have no folder yet — create on first use
 | `src/components/custom/` | Cross-page custom components. Non-atomic, domain-aware. |
 | `src/components/layout/` | Structural layout wrappers (Navbar, BottomNav, AuthLayout). |
 | `src/pages/<name>/` | Sub-components used by exactly one page (once a router exists). |
-| `hooks/use<Name>.ts` | Stateful logic needed in 2+ components. |
-| `services/<domain>.ts` | A fetch call needed in 2+ places, or a single file doing 2+ endpoints' worth of fetching. |
+| `src/services/<domain>.ts` | HTTP layer — one typed async function per endpoint, typed against the server envelope. No React imports. |
+| `src/hooks/use<Domain>.ts` | React Query hooks over a service's functions — owns the domain's `queryKey`. Also: any stateful logic needed in 2+ components. |
 
 Decision tree for a new component:
 
@@ -76,20 +83,26 @@ Decision tree for a new component:
 
 ## Fetch / Service Rules
 
-1. Use native `fetch` wrapped in TanStack React Query (`useQuery`/`useMutation`). No axios — nothing here needs interceptors or auth refresh, and React Query passes an `AbortSignal` to every queryFn (forward it to `fetch`).
-2. One call site (today, `App.tsx`) → typed `fetchX`/`createX` functions co-located above the component. Don't build a wrapper layer nobody needs yet.
-3. Second call site for the same domain → extract to `services/<domain>.ts`: one exported async function per endpoint, typed request/response.
-4. Server envelope (`server/src/interface/http/response.ts`) — type against it, don't invent an ad hoc shape:
+Two layers between a component and the network — components never call `fetch` and never import from `services/` directly:
+
+```
+component → hooks/use<Domain>.ts (React Query, owns queryKey) → services/<domain>.ts (fetch, owns endpoints)
+```
+
+1. `services/<domain>.ts` — one exported async function per endpoint, typed request/response, entity types (`User`, …) declared here. Never imports React; testable without rendering. Use native `fetch` — no axios (nothing here needs interceptors or auth refresh; if a shared auth header ever appears, add one `apiFetch` helper in `services/`, not a client class).
+2. `hooks/use<Domain>.ts` — `useQuery`/`useMutation` wrappers over the service functions (`useUsers()`, `useCreateUser()`). The domain's `queryKey` is declared once here (`export const usersKey = ["users"] as const`) — never inline `["users"]` strings elsewhere. Forward the queryFn's `signal` to `fetch`.
+3. Components share server state through the React Query cache, not props/context: any two components calling `useUsers()` read the same cache entry, and mutations update it for everyone. Server state lives in React Query; client state (theme, locale, form inputs) stays in `useState`.
+4. After a mutation whose response already contains the new entity: `cancelQueries` + `setQueryData` instead of refetching (see `useCreateUser`).
+5. Server envelope (`server/src/interface/http/response.ts`) — type against it, don't invent an ad hoc shape:
    - success: `{ statusCode, message, data, timestamp }`
    - error: `{ statusCode, error, message, details?, timestamp, path }`
-5. Always check `res.ok` before reading the body. Error bodies aren't guaranteed to be JSON (proxy errors, HTML 404s) — use `res.json().catch(() => null)` on the error path.
-6. Abort a request that a newer action makes stale, with `AbortController` — `useEffect` cleanup for unmount, or `.abort()` right before firing the request that supersedes it. See the existing pattern in `App.tsx`.
+6. Always check `res.ok` before reading the body. Error bodies aren't guaranteed to be JSON (proxy errors, HTML 404s) — use `res.json().catch(() => null)` on the error path.
 
 ## Error & Loading Rules
 
 1. Every async call gets explicit error/loading state — no silent failures.
 2. Plain `try`/`catch` or `.catch()`. No error-handling library is installed; don't add one (`neverthrow`, etc.) for this template's needs.
-3. Surface errors inline in the component, as `App.tsx` already does. Don't add a toast library until an actual cross-cutting notification need shows up.
+3. Surface errors inline in the component, as `App.tsx` already does; use `appToast` (`@/components/ui/toast/AppToast`, sonner-backed) for transient cross-cutting notifications.
 
 ## Styling Rules
 
@@ -131,6 +144,7 @@ Both `theme` and `locale` are runtime toggles a user can flip on the same page �
 - [ ] Placed via the decision tree (single-page-use inline, `ui/` for 2+ atomic, `custom/` for 2+ domain-aware, `layout/` for shell)
 - [ ] `App` prefix on `ui/` primitives only; no barrel files; named export
 - [ ] Single-use UI stays inline, not pre-split into its own file
+- [ ] Network calls layered: endpoint fn in `services/<domain>.ts`, React Query hook in `hooks/use<Domain>.ts`, component imports only the hook; `queryKey` declared once in the hook file
 - [ ] Fetch calls check `res.ok` and handle non-JSON error bodies
 - [ ] Loading and error states handled explicitly
 - [ ] No hardcoded colors — token declared in `index.css`'s `@theme` as `--color-<name>-app` with a `:root.dark` override, consumed via the generated Tailwind utility (static Tailwind palette classes only for colors fixed across both themes)
