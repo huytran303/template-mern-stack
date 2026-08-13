@@ -6,6 +6,7 @@ import { AppCard } from "@/components/ui/card/AppCard";
 import { AppEmptyState } from "@/components/ui/empty-state/AppEmptyState";
 import { AppInput } from "@/components/ui/input/AppInput";
 import { AppSearchInput } from "@/components/ui/search-input/AppSearchInput";
+import { AppSwitch } from "@/components/ui/switch/AppSwitch";
 import { AppTable, appTableFeatures } from "@/components/ui/table/AppTable";
 import { AppTableColumnToggle } from "@/components/ui/table/AppTableColumnToggle";
 import { AppTableLimitSelect } from "@/components/ui/table/AppTableLimitSelect";
@@ -108,13 +109,25 @@ export function App() {
     <main className="mx-auto my-8 max-w-[480px] font-sans">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold">{t.title}</h1>
-        <div className="flex gap-2">
-          <AppButton variant="secondary" onClick={() => setTheme((p) => (p === "dark" ? "light" : "dark"))}>
-            {theme === "dark" ? "☀️" : "🌙"}
-          </AppButton>
-          <AppButton variant="secondary" onClick={() => setLocale((p) => (p === "en" ? "vi" : "en"))}>
-            {locale === "en" ? "VI" : "EN"}
-          </AppButton>
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1 text-sm">
+            ☀️
+            <AppSwitch
+              checked={theme === "dark"}
+              onChange={(on) => setTheme(on ? "dark" : "light")}
+              aria-label={t.darkModeLabel}
+            />
+            🌙
+          </span>
+          <span className="flex items-center gap-1 text-sm">
+            EN
+            <AppSwitch
+              checked={locale === "vi"}
+              onChange={(on) => setLocale(on ? "vi" : "en")}
+              aria-label={t.languageLabel}
+            />
+            VI
+          </span>
         </div>
       </div>
       <AppCard className="mt-4">
@@ -126,7 +139,7 @@ export function App() {
         {error && <p className="mt-2 text-danger-app">{error}</p>}
         <AppSearchInput className="mt-4 w-full" placeholder={t.searchPlaceholder} onSearch={onSearch} />
         <div className="mt-4 flex flex-col gap-2">
-          <AppTableColumnToggle table={table} />
+          <AppTableColumnToggle table={table} label={t.columnsLabel} />
           <AppTable table={table} emptyMessage={search ? t.noResults : t.noUsers} />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <AppTableLimitSelect value={pagination.pageSize} onChange={onPageSize} label={t.limitLabel} />
