@@ -4,7 +4,10 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App.js";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  // Pages stay fresh for 30s — revisiting a page within that window serves cache, no refetch.
+  defaultOptions: { queries: { staleTime: 30_000 } },
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
