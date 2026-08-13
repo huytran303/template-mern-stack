@@ -3,17 +3,17 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { createUser, fetchUsers } from "@/services/users";
 
 // Root key for cross-cutting cache ops (invalidate/cancel match by prefix);
-// usersKey(search) identifies one filtered list — every queryFn input is part of the key.
+// usersKey(...) identifies one server page — every queryFn input is part of the key.
 export const usersKeyRoot = ["users"] as const;
-export function usersKey(search: string) {
-  return [...usersKeyRoot, search] as const;
+export function usersKey(search: string, limit: number, offset: number) {
+  return [...usersKeyRoot, search, limit, offset] as const;
 }
 
-export function useUsers(search = "") {
+export function useUsers(search = "", limit = 20, offset = 0) {
   return useQuery({
-    queryKey: usersKey(search),
-    queryFn: ({ signal }) => fetchUsers({ search, signal }),
-    // Show the previous search's rows while the new one loads — no flash to empty.
+    queryKey: usersKey(search, limit, offset),
+    queryFn: ({ signal }) => fetchUsers({ search, limit, offset, signal }),
+    // Show the previous page's rows while the new one loads — no flash to empty.
     placeholderData: keepPreviousData,
   });
 }

@@ -8,11 +8,13 @@ import { AppInput } from "@/components/ui/input/AppInput";
 import { AppSearchInput } from "@/components/ui/search-input/AppSearchInput";
 import { AppTable, appTableFeatures } from "@/components/ui/table/AppTable";
 import { AppTableColumnToggle } from "@/components/ui/table/AppTableColumnToggle";
+import { AppTableLimitSelect } from "@/components/ui/table/AppTableLimitSelect";
 import { AppTablePagination } from "@/components/ui/table/AppTablePagination";
 import { AppToaster, appToast } from "@/components/ui/toast/AppToast";
 import { useCreateUser, useUsers } from "@/hooks/useUsers";
 import { STRINGS, type Locale } from "@/i18n";
 import { type User } from "@/services/users";
+import { formatDate } from "@/utils/formatDate";
 
 type Theme = "light" | "dark";
 
@@ -47,7 +49,8 @@ export function App() {
 
   const [search, setSearch] = useState("");
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 5 });
-  const usersQuery = useUsers(search);
+  // Server-side pagination: each page is its own request, sized by the select.
+  const usersQuery = useUsers(search, pagination.pageSize, pagination.pageIndex * pagination.pageSize);
   const createMutation = useCreateUser();
 
   // A new search means a new result set — jump back to its first page.
@@ -55,15 +58,23 @@ export function App() {
     setSearch(value);
     setPagination((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }));
   }, []);
+  const onPageSize = useCallback((value: number) => {
+    setPagination({ pageIndex: 0, pageSize: value });
+  }, []);
 
-  const users = usersQuery.data ?? NO_USERS;
+  const users = usersQuery.data?.items ?? NO_USERS;
   const columns = useMemo(
     () =>
       columnHelper.columns([
         columnHelper.accessor("name", { header: t.namePlaceholder }),
         columnHelper.accessor("email", { header: t.emailPlaceholder }),
+        // ISO strings sort chronologically as text, so the default sortFn is correct.
+        columnHelper.accessor("createdAt", {
+          header: t.createdAtHeader,
+          cell: (info) => formatDate(info.getValue(), locale),
+        }),
       ]),
-    [t],
+    [t, locale],
   );
   const table = useTable({
     features: appTableFeatures,
@@ -71,6 +82,9 @@ export function App() {
     columns,
     state: { pagination },
     onPaginationChange: setPagination,
+    // The server pages; the table only reports page count from the server's total.
+    manualPagination: true,
+    rowCount: usersQuery.data?.total ?? 0,
   });
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -114,7 +128,10 @@ export function App() {
         <div className="mt-4 flex flex-col gap-2">
           <AppTableColumnToggle table={table} />
           <AppTable table={table} emptyMessage={search ? t.noResults : t.noUsers} />
-          <AppTablePagination className="justify-end" table={table} prevLabel={t.previousPage} nextLabel={t.nextPage} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <AppTableLimitSelect value={pagination.pageSize} onChange={onPageSize} label={t.limitLabel} />
+            <AppTablePagination table={table} prevLabel={t.previousPage} nextLabel={t.nextPage} />
+          </div>
         </div>
       </AppCard>
 

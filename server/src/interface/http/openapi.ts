@@ -13,6 +13,8 @@ const User = z.object({
   createdAt: z.string().datetime(),
 }) satisfies z.ZodType<Wire<DomainUser>>;
 
+const UserPage = z.object({ items: z.array(User), total: z.number().int() });
+
 const ApiError = z.object({
   statusCode: z.number(),
   error: z.string(),
@@ -59,11 +61,12 @@ export const openApiDocument = createDocument({
         requestParams: { query: ListUsersQuery },
         responses: {
           "200": {
-            description: "Newest users first, at most `limit` (default 20, max 100)",
-            content: { "application/json": { schema: envelope(z.array(User)) } },
+            description:
+              "One page, newest first: `offset` rows skipped, at most `limit` (default 20, max 100) returned; `total` counts every match",
+            content: { "application/json": { schema: envelope(UserPage) } },
           },
           "400": {
-            description: "Invalid limit",
+            description: "Invalid limit or offset",
             content: { "application/json": { schema: ApiError } },
           },
         },

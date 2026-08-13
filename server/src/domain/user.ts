@@ -9,13 +9,19 @@ export interface User {
   createdAt: Date;
 }
 
+// One page of a list — `total` counts every match so callers can compute page count.
+export interface UserPage {
+  items: User[];
+  total: number;
+}
+
 // Port — implemented by infra, used by usecases. Lives here so domain owns the contract.
 export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
   /** Throws DomainError("email already registered", "conflict") on duplicate email. */
   save(user: User): Promise<void>;
-  /** Newest first, at most `limit`; `search` filters by case-insensitive substring on name or email. */
-  list(limit: number, search?: string): Promise<User[]>;
+  /** Newest first, `offset` rows skipped, at most `limit` returned; `search` filters by case-insensitive substring on name or email. */
+  list(limit: number, offset: number, search?: string): Promise<UserPage>;
 }
 
 // Single source of truth for the create-user contract — enforced here, published by openapi.ts.
@@ -28,6 +34,8 @@ export const CreateUser = z.object({
 // Query contract for listing — capped so a list can never return the whole collection.
 export const ListUsersQuery = z.object({
   limit: z.coerce.number().int().min(1, "limit must be 1-100").max(100, "limit must be 1-100").default(20),
+  // capped because Mongo's skip() walks every skipped doc — huge offsets are a perf footgun
+  offset: z.coerce.number().int().min(0, "offset must be 0-10000").max(10000, "offset must be 0-10000").default(0),
   // capped so a search term can't become an unbounded regex scan
   search: z.string().trim().max(100, "search too long").optional(),
 }).strict();

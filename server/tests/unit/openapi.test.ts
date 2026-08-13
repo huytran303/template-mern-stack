@@ -6,7 +6,7 @@ import { buildApp } from "../../src/interface/http/server.js";
 const stubRepo: UserRepository = {
   findByEmail: async () => null,
   save: async () => undefined,
-  list: async () => [],
+  list: async () => ({ items: [], total: 0 }),
 };
 
 // Minimal view of Express 5's router internals — enough to enumerate mounted routes.

@@ -14,22 +14,29 @@ body {
 
 #root {
   overflow-y: auto;
-  scrollbar-color: var(--color-primary-app) transparent;
-  scrollbar-width: thin;
   background-color: var(--color-bg-app);
   color: var(--color-text-app);
 }
 
-#root::-webkit-scrollbar {
-  width: 10px;
+/* Thin, low-contrast scrollbars everywhere (page + any overflow container).
+   border-app tracks the theme, so the thumb stays near-invisible in both modes.
+   ::-webkit-* is the Safari fallback; browsers with scrollbar-width ignore it. */
+* {
+  scrollbar-color: var(--color-border-app) transparent;
+  scrollbar-width: thin;
 }
 
-#root::-webkit-scrollbar-track {
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
-#root::-webkit-scrollbar-thumb {
-  background: var(--color-primary-app);
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-app);
   border-radius: 9999px;
 }
 
@@ -62,12 +69,14 @@ body {
    defaults <button> to `cursor: default`, not pointer. Custom non-native
    clickable elements should use role="button" to pick up this rule. */
 button:not(:disabled),
+select:not(:disabled),
 a[href],
 [role="button"]:not([aria-disabled="true"]) {
   cursor: pointer;
 }
 
 button:disabled,
+select:disabled,
 [role="button"][aria-disabled="true"] {
   cursor: not-allowed;
 }

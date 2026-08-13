@@ -44,12 +44,15 @@ export function mongoUserRepository(): UserRepository {
         throw err;
       }
     },
-    async list(limit, search) {
+    async list(limit, offset, search) {
       // Escape the (zod-validated, length-capped) term so it matches literally — never as a user-built regex.
       const rx = search && new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
       const filter = rx ? { $or: [{ name: rx }, { email: rx }] } : {};
-      const docs = await UserModel.find(filter).sort({ createdAt: -1 }).limit(limit).lean();
-      return docs.map(toDomain);
+      const [docs, total] = await Promise.all([
+        UserModel.find(filter).sort({ createdAt: -1 }).skip(offset).limit(limit).lean(),
+        UserModel.countDocuments(filter),
+      ]);
+      return { items: docs.map(toDomain), total };
     },
   };
 }

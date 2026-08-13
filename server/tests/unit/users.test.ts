@@ -17,13 +17,13 @@ function inMemoryRepo(): UserRepository {
       }
       users.push({ ...user });
     },
-    async list(limit, search) {
+    async list(limit, offset, search) {
       const q = search?.toLowerCase() ?? "";
-      return users
+      const matches = users
         .filter((u) => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
         .map((u) => ({ ...u }))
-        .sort((a, b) => +b.createdAt - +a.createdAt)
-        .slice(0, limit);
+        .sort((a, b) => +b.createdAt - +a.createdAt);
+      return { items: matches.slice(offset, offset + limit), total: matches.length };
     },
   };
 }
@@ -34,7 +34,7 @@ describe("registerUser", () => {
     const user = await registerUser(repo, { email: "  Ana@Example.COM ", name: "Ana" });
     expect(user.email).toBe("ana@example.com");
     expect(user.id).toBeTruthy();
-    expect(await listUsers(repo)).toHaveLength(1);
+    expect((await listUsers(repo)).items).toHaveLength(1);
   });
 
   it("rejects invalid email", async () => {
@@ -67,24 +67,30 @@ describe("registerUser", () => {
 });
 
 describe("listUsers", () => {
-  it("applies the validated limit and rejects bad ones", async () => {
+  it("applies the validated limit/offset and rejects bad ones", async () => {
     const repo = inMemoryRepo();
     for (let i = 0; i < 3; i++) {
       await registerUser(repo, { email: `u${i}@example.com`, name: `U${i}` });
     }
-    expect(await listUsers(repo)).toHaveLength(3); // default limit
-    expect(await listUsers(repo, { limit: "2" })).toHaveLength(2); // query strings coerce
+    const page = await listUsers(repo); // defaults: limit 20, offset 0
+    expect(page.items).toHaveLength(3);
+    expect(page.total).toBe(3);
+    expect((await listUsers(repo, { limit: "2" })).items).toHaveLength(2); // query strings coerce
+    const offsetPage = await listUsers(repo, { limit: "2", offset: "2" });
+    expect(offsetPage.items).toHaveLength(1); // last page
+    expect(offsetPage.total).toBe(3); // total ignores paging
     await expect(listUsers(repo, { limit: "0" })).rejects.toThrow(DomainError);
     await expect(listUsers(repo, { limit: "101" })).rejects.toThrow("limit must be 1-100");
+    await expect(listUsers(repo, { offset: "-1" })).rejects.toThrow("offset must be 0-10000");
   });
 
   it("filters by case-insensitive substring on name or email", async () => {
     const repo = inMemoryRepo();
     await registerUser(repo, { email: "ana@example.com", name: "Ana" });
     await registerUser(repo, { email: "bob@test.dev", name: "Bob" });
-    expect(await listUsers(repo, { search: "ANA" })).toHaveLength(1);
-    expect(await listUsers(repo, { search: "test.dev" })).toHaveLength(1);
-    expect(await listUsers(repo, { search: "  " })).toHaveLength(2); // trims to empty → no filter
+    expect((await listUsers(repo, { search: "ANA" })).items).toHaveLength(1);
+    expect((await listUsers(repo, { search: "test.dev" })).items).toHaveLength(1);
+    expect((await listUsers(repo, { search: "  " })).items).toHaveLength(2); // trims to empty → no filter
     await expect(listUsers(repo, { search: "x".repeat(101) })).rejects.toThrow("search too long");
   });
 });
