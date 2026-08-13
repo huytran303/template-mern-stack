@@ -17,12 +17,12 @@ You are the frontend architecture guardian for this project. Load and enforce th
 - **React 19** + TypeScript, built with **Vite** (`client/`, one of two npm workspaces alongside `server/`).
 - No router — the app is a single page (`App.tsx`).
 - No state library — local component state (`useState`/`useReducer`) is enough at this size.
-- No HTTP client library — native `fetch`, called against `/api/v1/...` (Vite dev-proxies `/api` to the server). **TanStack React Query** (`@tanstack/react-query`) manages server state: `useQuery`/`useMutation` over those fetch functions, `QueryClientProvider` in `main.tsx`. Pass the queryFn's `signal` to `fetch`; after a mutation, update the cache per Fetch/Service rule 4 (`setQueryData` when the response determines the new value, `invalidateQueries` when the list is server-filtered).
+- No HTTP client library — native `fetch`, called against `/api/v1/...` (Vite dev-proxies `/api` to the server). **TanStack React Query** (`@tanstack/react-query`) manages server state: `useQuery`/`useMutation` over those fetch functions, `QueryClientProvider` in `main.tsx`. Pass the queryFn's `signal` to `fetch`; after a mutation, update the cache per Fetch/Service rule 4 (`setQueryData` when the response determines the new value, `invalidateQueries` when the list is server-filtered). Paginated/searched queries use `placeholderData: keepPreviousData` so a key change (new page, new search) keeps the old rows on screen instead of flashing empty (see `useUsers`).
 - **Tailwind v4**, CSS-first (`@tailwindcss/vite` plugin, no `tailwind.config.*`). Color tokens are declared in `client/src/index.css` inside `@theme` as `--color-<name>-app`, which generates the `<name>-app` utilities (`bg-danger-app`, `text-danger-app`, …).
 - Dark mode is manual (not `prefers-color-scheme`-only): a `.dark` class toggled on `<html>` (see `App.tsx`'s `theme` state) overrides the same tokens under `:root.dark` in `index.css`. No `dark:` Tailwind variant is used — the token indirection alone repaints every `*-app` utility.
 - Locale is manual too: `client/src/i18n.ts` exports `STRINGS: Record<Locale, {...}>` (`en`/`vi`); `App.tsx` holds a `locale` state, persists it to `localStorage`, and reads `t = STRINGS[locale]`. No i18n library — add one only once a second page's worth of strings makes the flat dictionary unwieldy.
 - `cn()` at `client/src/utils/cn.ts` — `twMerge(clsx(inputs))` — for any conditional class.
-- **TanStack Table v9** (`@tanstack/react-table`) for tables — headless: the caller owns the `useTable` instance and passes it to the `ui/table/` kit (`AppTable`, `AppTablePagination`, `AppTableColumnToggle`). v9 ≠ v8: `useTable({ features, columns, data })` with `tableFeatures({...})` (no `useReactTable`/`getCoreRowModel`), `createColumnHelper<typeof features, T>()`, `table.state` instead of `table.getState()`. The shared feature set lives in `AppTable.tsx` (`appTableFeatures`); extend it there when a table needs sorting/selection/etc. Docs for agents ship in `node_modules/@tanstack/react-table/skills/`. Keep `data`/`columns` referentially stable (module-scope empty fallback, `useMemo` columns).
+- **TanStack Table v9** (`@tanstack/react-table`) for tables — headless: the caller owns the `useTable` instance and passes it to the `ui/table/` kit (`AppTable`, `AppTableColumnToggle`, `AppTableLimitSelect`). Pagination controls are table-agnostic — `ui/pagination/AppPagination` takes plain `pageIndex`/`pageCount`/`onPageChange` props, no table instance. v9 ≠ v8: `useTable({ features, columns, data })` with `tableFeatures({...})` (no `useReactTable`/`getCoreRowModel`), `createColumnHelper<typeof features, T>()`, `table.state` instead of `table.getState()`. The shared feature set lives in `AppTable.tsx` (`appTableFeatures`); extend it there when a table needs sorting/selection/etc. Docs for agents ship in `node_modules/@tanstack/react-table/skills/`. Keep `data`/`columns` referentially stable (module-scope empty fallback, `useMemo` columns).
 - `@/` path alias configured (`client/tsconfig.json` `paths`, `client/vite.config.ts` `resolve.alias`) → `client/src/*`.
 
 Do not add react-router, Redux/Zustand/Valtio, or axios speculatively. Each has a concrete trigger below; add it — and update this skill — when the trigger actually fires, not before.
@@ -50,10 +50,13 @@ client/src/
       card/AppCard.tsx
       input/AppInput.tsx
       empty-state/AppEmptyState.tsx
+      pagination/AppPagination.tsx     # table-agnostic pager: pageIndex/pageCount/onPageChange props
       search-input/AppSearchInput.tsx  # debounced search box (trimmed value via onSearch)
-      table/AppTable.tsx               # headless TanStack Table v9 kit: AppTable + AppTablePagination + AppTableColumnToggle + shared appTableFeatures
-      table/AppTablePagination.tsx
+      skeleton/AppSkeleton.tsx         # pulsing placeholder block — size it with className, compose per use site
+      switch/AppSwitch.tsx
+      table/AppTable.tsx               # headless TanStack Table v9 kit: AppTable + AppTableColumnToggle + AppTableLimitSelect + shared appTableFeatures
       table/AppTableColumnToggle.tsx
+      table/AppTableLimitSelect.tsx
       toast/AppToast.tsx
     custom/    # cross-page, domain-aware components (README placeholder)
     layout/    # Navbar/Sidebar/AuthLayout shells (README placeholder)
@@ -108,6 +111,7 @@ component → hooks/use<Domain>.ts (React Query, owns queryKey) → services/<do
 1. Every async call gets explicit error/loading state — no silent failures.
 2. Plain `try`/`catch` or `.catch()`. No error-handling library is installed; don't add one (`neverthrow`, etc.) for this template's needs.
 3. Surface errors inline in the component, as `App.tsx` already does; use `appToast` (`@/components/ui/toast/AppToast`, sonner-backed) for transient cross-cutting notifications.
+4. Loading UI: skeletons only for the *initial* load of async data (`isPending`), composed from `AppSkeleton` sized to the real layout (see `AppTable`'s `loading` prop and the AppSkeleton demo card in `App.tsx`) — no per-component `*Skeleton` files, and no skeleton where the real content is static or `keepPreviousData` already keeps old data on screen. Never render the empty-state message while the first load is still pending.
 
 ## Styling Rules
 
