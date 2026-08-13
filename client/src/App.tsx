@@ -9,7 +9,7 @@ import { AppSearchInput } from "@/components/ui/search-input/AppSearchInput";
 import { AppTable, appTableFeatures } from "@/components/ui/table/AppTable";
 import { AppTableColumnToggle } from "@/components/ui/table/AppTableColumnToggle";
 import { AppTableLimitSelect } from "@/components/ui/table/AppTableLimitSelect";
-import { AppTablePagination } from "@/components/ui/table/AppTablePagination";
+import { AppPagination } from "@/components/ui/pagination/AppPagination";
 import { AppToaster, appToast } from "@/components/ui/toast/AppToast";
 import { useCreateUser, useUsers } from "@/hooks/useUsers";
 import { STRINGS, type Locale } from "@/i18n";
@@ -130,7 +130,13 @@ export function App() {
           <AppTable table={table} emptyMessage={search ? t.noResults : t.noUsers} />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <AppTableLimitSelect value={pagination.pageSize} onChange={onPageSize} label={t.limitLabel} />
-            <AppTablePagination table={table} prevLabel={t.previousPage} nextLabel={t.nextPage} />
+            <AppPagination
+              pageIndex={pagination.pageIndex}
+              pageCount={table.getPageCount()}
+              onPageChange={(pageIndex) => setPagination((p) => ({ ...p, pageIndex }))}
+              prevLabel={t.previousPage}
+              nextLabel={t.nextPage}
+            />
           </div>
         </div>
       </AppCard>
