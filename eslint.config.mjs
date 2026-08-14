@@ -38,8 +38,8 @@ export default tseslint.config(
           message: 'Do not add cursor-pointer per component — the global rule in client/src/index.css covers button, a[href], and [role="button"].',
         },
         {
-          selector: "JSXOpeningElement[name.name=/^(div|span|section|li|img)$/]:has(JSXAttribute[name.name='onClick']):not(:has(JSXAttribute[name.name='role']))",
-          message: 'A non-native clickable element needs role="button" so the global cursor rule in client/src/index.css applies (or use a real <button>).',
+          selector: "JSXOpeningElement[name.name=/^(?!(a|button|input|select|option|summary|label|textarea|details|area)$)[a-z]/]:has(JSXAttribute[name.name='onClick']):not(:has(JSXAttribute[name.name='role'][value.value='button']))",
+          message: 'Anything clickable must show cursor: pointer. Use a real <button>/<a href>, or add role="button" so the global cursor rule in client/src/index.css applies. Other interactive roles need their own entry in that CSS rule.',
         },
       ],
     },
