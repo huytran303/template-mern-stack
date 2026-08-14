@@ -4,8 +4,8 @@ import { createUser, fetchUsers } from "@/services/users";
 
 // Root key for cross-cutting cache ops (invalidate/cancel match by prefix);
 // usersKey(...) identifies one server page — every queryFn input is part of the key.
-export const usersKeyRoot = ["users"] as const;
-export function usersKey(search: string, limit: number, offset: number) {
+const usersKeyRoot = ["users"] as const;
+function usersKey(search: string, limit: number, offset: number) {
   return [...usersKeyRoot, search, limit, offset] as const;
 }
 

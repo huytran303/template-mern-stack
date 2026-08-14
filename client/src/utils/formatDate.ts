@@ -1,7 +1,7 @@
 import type { Locale } from "../i18n";
 
 // Single source of truth for how the app renders backend timestamps.
-export const DATE_FORMAT: Intl.DateTimeFormatOptions = {
+const DATE_FORMAT: Intl.DateTimeFormatOptions = {
   dateStyle: "medium",
   timeStyle: "short",
 };
