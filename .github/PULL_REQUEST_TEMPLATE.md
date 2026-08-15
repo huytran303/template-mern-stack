@@ -2,7 +2,7 @@
 
 <!-- Link the SPEC: .sdd/specs/feat-{name}/SPEC.md -->
 
-## Reviewer gates (CI does NOT check these — see .sdd/constitution.md)
+## Reviewer gates (CI does NOT check these — see .rules/backend.md)
 
 - [ ] L2: code matches the SPEC's acceptance criteria
 - [ ] L4: review-only rules hold — input validated (SEC-03), deletes per DATA-01,

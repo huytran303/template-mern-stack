@@ -30,10 +30,11 @@ server/src/interface/   Express routes + middleware (logging, errors)
 server/src/infra/       zod config (fail-fast), Mongo repositories
 server/tests/           unit (no DB) / integration (real Mongo)
 client/                 React + Vite, proxies /api
-.sdd/                   constitution, specs, ADRs — see CLAUDE.md
+.rules/                 all project rules — architecture, backend, frontend
+.sdd/                   specs, ADRs
 ```
 
-Full what/why/when per layer: [ARCHITECTURE.md](ARCHITECTURE.md)
+Full what/why/when per layer: [.rules/architecture.md](.rules/architecture.md) — all project rules live in [.rules/](.rules/README.md)
 
 ## License
 

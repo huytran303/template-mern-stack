@@ -1,16 +1,5 @@
----
-name: react-arch
-description: Architecture rules for this project's React frontend — plain fetch, native React state, Tailwind v4 + cn(), npm workspaces. No router or state library is installed; add one only when the growth trigger below actually fires.
-user-invocable: true
-triggers:
-  - working on React components or pages in client/src
-  - adding a fetch call to the backend
-  - applying color or conditional-class styling in client/src
-  - deciding whether to add a router or a state library
-  - adding or changing a translatable string, or styling that must hold up across theme/locale
----
+# Frontend rules — client/
 
-You are the frontend architecture guardian for this project. Load and enforce these rules before any implementation begins.
 
 ## Stack
 
@@ -20,7 +9,7 @@ You are the frontend architecture guardian for this project. Load and enforce th
 - No HTTP client library — native `fetch`, called against `/api/v1/...` (Vite dev-proxies `/api` to the server). **TanStack React Query** (`@tanstack/react-query`) manages server state: `useQuery`/`useMutation` over those fetch functions, `QueryClientProvider` in `main.tsx`. Pass the queryFn's `signal` to `fetch`; after a mutation, update the cache per Fetch/Service rule 4 (`setQueryData` when the response determines the new value, `invalidateQueries` when the list is server-filtered). Paginated/searched queries use `placeholderData: keepPreviousData` so a key change (new page, new search) keeps the old rows on screen instead of flashing empty (see `useUsers`).
 - **Tailwind v4**, CSS-first (`@tailwindcss/vite` plugin, no `tailwind.config.*`). Color tokens are declared in `client/src/index.css` inside `@theme` as `--color-<name>-app`, which generates the `<name>-app` utilities (`bg-danger-app`, `text-danger-app`, …).
 - Dark mode is manual (not `prefers-color-scheme`-only): a `.dark` class toggled on `<html>` (see `App.tsx`'s `theme` state) overrides the same tokens under `:root.dark` in `index.css`. No `dark:` Tailwind variant is used — the token indirection alone repaints every `*-app` utility.
-- Locale is manual too: `client/src/i18n.ts` exports `STRINGS: Record<Locale, {...}>` (`en`/`vi`); `App.tsx` holds a `locale` state, persists it to `localStorage`, and reads `t = STRINGS[locale]`. No i18n library — add one only once a second page's worth of strings makes the flat dictionary unwieldy.
+- Locale: **i18next** + `react-i18next`, initialized in `client/src/i18n/index.ts` (`en`/`vi`, `fallbackLng: "en"`, language persisted to `localStorage`). Strings are split one file per feature domain (`i18n/common.ts`, `i18n/users.ts`, `i18n/demo.ts`), each exporting `{ en, vi }`, assembled into `resources` in `index.ts`. Components read strings with `const { t } = useTranslation()` and namespaced keys (`t("users.title")`); switch locale with `i18n.changeLanguage("vi")`. New feature → new `i18n/<module>.ts`, then register it in both locales in `index.ts`.
 - `cn()` at `client/src/utils/cn.ts` — `twMerge(clsx(inputs))` — for any conditional class.
 - **TanStack Table v9** (`@tanstack/react-table`) for tables — headless: the caller owns the `useTable` instance and passes it to the `ui/table/` kit (`AppTable`, `AppTableColumnToggle`, `AppTableLimitSelect`). Pagination controls are table-agnostic — `ui/pagination/AppPagination` takes plain `pageIndex`/`pageCount`/`onPageChange` props, no table instance. v9 ≠ v8: `useTable({ features, columns, data })` with `tableFeatures({...})` (no `useReactTable`/`getCoreRowModel`), `createColumnHelper<typeof features, T>()`, `table.state` instead of `table.getState()`. The shared feature set lives in `AppTable.tsx` (`appTableFeatures`); extend it there when a table needs sorting/selection/etc. Docs for agents ship in `node_modules/@tanstack/react-table/skills/`. Keep `data`/`columns` referentially stable (module-scope empty fallback, `useMemo` columns).
 - `@/` path alias configured (`client/tsconfig.json` `paths`, `client/vite.config.ts` `resolve.alias`) → `client/src/*`.
@@ -36,7 +25,11 @@ client/src/
   main.tsx     # entry point, mounts App inside QueryClientProvider
   App.tsx      # the app's one page (no router yet)
   index.css    # Tailwind import + @theme color tokens (only place hex/named colors are allowed) + :root.dark overrides
-  i18n.ts      # Locale type + STRINGS dictionary (en/vi) — flat key -> string per locale, no nesting
+  i18n/
+    index.ts   # i18next init + Locale type + resources (registers every module in en/vi)
+    common.ts  # one file per feature domain, each exporting { en, vi }
+    users.ts
+    demo.ts
   services/
     users.ts   # HTTP layer: one typed async function per endpoint. Knows endpoints, never imports React.
   hooks/
@@ -123,17 +116,18 @@ component → hooks/use<Domain>.ts (React Query, owns queryKey) → services/<do
    ```
 4. `cn()` lives at `client/src/utils/cn.ts` (`twMerge(clsx(inputs))`) — import it, never re-implement it. `tailwind-merge` matters here: it resolves conflicting Tailwind utilities between the base and the override (e.g. a base `px-2` and an override `px-4`) in favor of the later one, which plain string concatenation can't do.
 5. No CSS-in-JS, no CSS Modules — Tailwind utilities cover styling needs at this size. Global tokens and the Tailwind `@import` live in `index.css`; nothing else goes there.
+6. Clickable elements get `cursor: pointer` from one global rule in `index.css` (`button`, `a[href]`, `[role="button"]`; `:disabled` → `not-allowed`) — never add `cursor-pointer` per component. A non-native clickable (a `div` with `onClick`) must carry `role="button"` to pick it up — which it needs for accessibility anyway.
 
 ## Theme & Locale Safety
 
 Both `theme` and `locale` are runtime toggles a user can flip on the same page — new UI must survive both without a code change.
 
 1. **Theme.** Never assume today's light-mode contrast (e.g. "text is dark, so a light border is always visible") — the same class runs under `.dark` too. Check new markup with the theme toggle flipped, not just at default.
-2. **Locale.** `vi` strings in `client/src/i18n.ts` run 30-60% longer than their `en` counterpart (`"Users"` → `"Người dùng"`, `"Disabled"` → `"Vô hiệu hoá"`). Any element sized to fit today's English string will overflow or clip once `vi` is selected.
-   - No `whitespace-nowrap` on an element rendering a `STRINGS` value.
+2. **Locale.** `vi` strings in `client/src/i18n/` run 30-60% longer than their `en` counterpart (`"Users"` → `"Người dùng"`, `"Disabled"` → `"Vô hiệu hoá"`). Any element sized to fit today's English string will overflow or clip once `vi` is selected.
+   - No `whitespace-nowrap` on an element rendering a `t()` value.
    - No fixed pixel width wrapping a translatable label — let it size to content, or wrap.
    - Any flex row of buttons/pills/labels that includes a translatable string needs `flex-wrap` (see the header controls and the `AppButton`/`AppInput` demo rows in `App.tsx`), so it stacks instead of overflowing at the app's narrow `max-w-[480px]` column.
-   - When adding a new key to `STRINGS`, sanity-check its layout with the longer of the two locales selected, not just `en`.
+   - When adding a new key to an `i18n/<module>.ts`, sanity-check its layout with the longer of the two locales selected, not just `en`.
 3. Prefer letting Flexbox/Grid reflow over `truncate` for translatable text — this app has no tooltip primitive yet, so a truncated label with no way to read the full string is a worse outcome than a taller row.
 
 ## Import Conventions
@@ -149,6 +143,7 @@ Both `theme` and `locale` are runtime toggles a user can flip on the same page �
 
 ## Pre-Implementation Checklist
 
+- [ ] Read the target folder's `README.md` — what you're writing matches what that folder is for
 - [ ] Checked `src/components/ui/`, `src/components/custom/`, `src/components/layout/` for a reusable component before writing a new one
 - [ ] Placed via the decision tree (single-page-use inline, `ui/` for 2+ atomic, `custom/` for 2+ domain-aware, `layout/` for shell)
 - [ ] `App` prefix on `ui/` primitives only; no barrel files; named export
@@ -158,6 +153,7 @@ Both `theme` and `locale` are runtime toggles a user can flip on the same page �
 - [ ] Loading and error states handled explicitly
 - [ ] No hardcoded colors — token declared in `index.css`'s `@theme` as `--color-<name>-app` with a `:root.dark` override, consumed via the generated Tailwind utility (static Tailwind palette classes only for colors fixed across both themes)
 - [ ] No template literals in `className` — `cn()` used for any conditional class
+- [ ] No per-component `cursor-pointer`; any non-native clickable has `role="button"`
 - [ ] Checked with the theme toggle flipped — text/borders/muted content still readable under `.dark`
 - [ ] Checked with `locale` set to `vi` (longer strings) — no overflow/clipping; translatable rows have `flex-wrap`, no `whitespace-nowrap`, no fixed pixel widths
 - [ ] No new dependency (router, state lib, HTTP client) added without a current, real need
