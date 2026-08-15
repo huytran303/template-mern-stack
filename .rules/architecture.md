@@ -80,13 +80,21 @@ HTTP request
 
 **When?** All UI work. It talks to the server only through `/api/v1/*` — it never imports server code.
 
+## `.rules/`
+
+**What?** Every rule in the project, in one folder: `backend.md` (the constitution — some rules CI-checked by `scripts/check-constitution.sh`, some review gates), `frontend.md` (React stack + component/fetch/styling/theme/locale rules), `architecture.md` (this file).
+
+**Why?** Rules that live only in heads or chat history don't survive contributors — or AI agents. One folder means an agent (or a new hire) reads one place instead of hunting four; everything else in the repo only points here.
+
+**When?** Before writing code in a layer you haven't touched. `npm run check` runs the mechanical subset on every verify.
+
 ## `.sdd/`
 
-**What?** Process artifacts: `constitution.md` (the hard rules — some CI-checked by `scripts/check-constitution.sh`, some review gates), `specs/feat-*/` (SPEC + TASKS written before coding; `feat-users/` is the worked example), `rfcs/ADR-*.md` (architecture decisions, write-once).
+**What?** Process artifacts: `specs/feat-*/` (SPEC + TASKS written before coding; `feat-users/` is the worked example), `rfcs/ADR-*.md` (architecture decisions, write-once).
 
-**Why?** Rules that live only in heads or chat history don't survive contributors — or AI agents. The constitution makes them enforceable; specs force "what are we building" before "how"; ADRs preserve *why* a decision was made after everyone forgot.
+**Why?** Specs force "what are we building" before "how"; ADRs preserve *why* a decision was made after everyone forgot.
 
-**When?** New feature → copy `specs/_template.md` first. Architecture decision → new ADR (never edit an old one). `npm run check` runs the constitution check on every verify.
+**When?** New feature → copy `specs/_template.md` first. Architecture decision → new ADR (never edit an old one).
 
 ## Supporting files
 

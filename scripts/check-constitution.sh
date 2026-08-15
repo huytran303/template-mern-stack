@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Machine checks for .sdd/constitution.md (gate L3). Fails CI on violation.
+# Machine checks for .rules/backend.md (gate L3). Fails CI on violation.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 fail=0
