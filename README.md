@@ -8,17 +8,20 @@ config, request logging middleware, CI-enforced layer rules.
 Requires Node >= 22.9 (scripts use `--env-file`).
 
 ```bash
-cp .env.example .env
+cp .env.example .env     # required — the server fail-fasts without it
 docker compose up -d     # Mongo (bound to 127.0.0.1)
 npm install
-npm run dev              # API :3000 (OpenAPI docs at /docs), client :5173
+npm run dev              # API :3000 (routes under /api/v1, OpenAPI docs at /docs), client :5173
 npm run seed             # optional — demo data (3 users)
 ```
 
 ## Verify
 
 ```bash
-npm run check            # constitution + lint + typecheck + tests
+npm run check            # constitution + lint + typecheck + tests — Definition of Done
+npm run lint             # eslint, server + client in parallel
+npm run typecheck        # tsc --noEmit, both workspaces
+npm test                 # unit always; integration only when MONGO_URI is set (loaded from .env)
 ```
 
 ## Layout
@@ -34,7 +37,11 @@ client/                 React + Vite, proxies /api
 .sdd/                   specs, ADRs
 ```
 
-Full what/why/when per layer: [.rules/architecture.md](.rules/architecture.md) — all project rules live in [.rules/](.rules/README.md)
+Every folder above carries a `README.md` saying what belongs in it.
+
+Rules — for contributors and coding agents alike — live in one folder: **[.rules/](.rules/README.md)**.
+`CLAUDE.md` and `AGENTS.md` are pointers to it, nothing more.
+Full what/why/when per layer: [.rules/architecture.md](.rules/architecture.md).
 
 ## License
 
