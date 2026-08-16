@@ -1,7 +1,7 @@
 # MERN Template
 
-Express 5 + Mongoose + React 19 (Vite) + TypeScript. Clean architecture, typed fail-fast
-config, request logging middleware, CI-enforced layer rules.
+Express 5 + Mongoose + React 19 (Vite) + TypeScript, one npm workspace.
+Clean architecture on both sides, CI-enforced layer rules.
 
 ## Quickstart
 
@@ -19,29 +19,21 @@ npm run seed             # optional — demo data (3 users)
 
 ```bash
 npm run check            # constitution + lint + typecheck + tests — Definition of Done
-npm run lint             # eslint, server + client in parallel
-npm run typecheck        # tsc --noEmit, both workspaces
-npm test                 # unit always; integration only when MONGO_URI is set (loaded from .env)
 ```
 
 ## Layout
 
 ```
-server/src/domain/      entities, validation, ports — imports nothing
-server/src/usecase/     business flows
-server/src/interface/   Express routes + middleware (logging, errors)
-server/src/infra/       zod config (fail-fast), Mongo repositories
-server/tests/           unit (no DB) / integration (real Mongo)
-client/                 React + Vite, proxies /api
-.rules/                 all project rules — architecture, backend, frontend
-.sdd/                   specs, ADRs
+server/       Express API — clean architecture (domain / usecase / interface / infra)
+client/       React + Vite — pages, components, hooks, services, i18n
+.rules/       all project rules — architecture, backend, frontend
+.sdd/         specs, ADRs
 ```
 
-Every folder above carries a `README.md` saying what belongs in it.
+Every folder carries a `README.md` saying what belongs in it.
 
 Rules — for contributors and coding agents alike — live in one folder: **[.rules/](.rules/README.md)**.
 `CLAUDE.md` and `AGENTS.md` are pointers to it, nothing more.
-Full what/why/when per layer: [.rules/architecture.md](.rules/architecture.md).
 
 ## License
 
