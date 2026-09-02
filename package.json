@@ -10,7 +10,7 @@
     "node": ">=22.9"
   },
   "scripts": {
-    "dev": "bash scripts/dev.sh",
+    "dev": "concurrently -k -s first -n server,client -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
     "test": "npm test --workspaces --if-present",
     "seed": "npm run seed --workspace=server",
     "typecheck": "npm run typecheck --workspaces",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.5",
     "eslint": "^10.8.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "typescript-eslint": "^8.66.0"
